@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mealCardRoot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="16dp"
+    android:layout_marginVertical="8dp"
+    android:background="@drawable/rounded_card_background"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:elevation="4dp">
+
+    <LinearLayout
+        android:id="@+id/topRowLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="12dp"
+        android:clickable="true"
+        android:focusable="true">
+
+        <TextView
+            android:id="@+id/arrowIcon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:text="▶"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
+            android:id="@+id/tvMealName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Завтрак"
+            android:textSize="18sp"
+            android:textColor="@color/text_primary"
+            android:textStyle="bold"
+            android:layout_marginStart="8dp" />
+
+        <TextView
+            android:id="@+id/tvMealCalories"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/chart_calories" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ккал"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginStart="4dp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvMealDescription"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Нет добавленных продуктов"
+        android:textSize="14sp"
+        android:textColor="@color/text_hint"
+        android:layout_marginStart="32dp"
+        android:layout_marginBottom="16dp" />
+
+    <LinearLayout
+        android:id="@+id/productsContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone"
+        android:layout_marginTop="4dp" />
+
+    <Button
+        android:id="@+id/btnAddMealItem"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="12dp"
+        android:text="+ Добавить продукт"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="@color/button_primary_text"
+        android:backgroundTint="@color/accent_nutrition" />
+</LinearLayout>

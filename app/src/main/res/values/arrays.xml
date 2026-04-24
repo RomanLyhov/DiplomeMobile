@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="activity_levels">
+        <item>Минимальная активность (офисная работа)</item>
+        <item>Легкая активность (1-2 тренировки в неделю)</item>
+        <item>Средняя активность (3-4 тренировки в неделю)</item>
+        <item>Высокая активность (5-6 тренировок в неделю)</item>
+        <item>Очень высокая (профессиональный спорт)</item>
+    </string-array>
+
+    <string-array name="goals">
+        <item>Похудение</item>
+        <item>Набор мышечной массы</item>
+        <item>Поддержание формы</item>
+        <item>Улучшение здоровья</item>
+        <item>Подготовка к соревнованиям</item>
+    </string-array>
+
+        <string-array name="period_array">
+            <item>Последние 7 дней</item>
+            <item>Последние 30 дней</item>
+            <item>Последние 3 месяца</item>
+            <item>Последние 6 месяцев</item>
+            <item>Последний год</item>
+            <item>За всё время</item>
+        </string-array>
+
+    <string-array name="exercises">
+        <!-- Грудь -->
+        <item>Жим штанги лежа</item>
+        <item>Жим гантелей лежа</item>
+        <item>Жим в наклоне</item>
+        <item>Отжимания от пола</item>
+        <item>Отжимания на брусьях</item>
+        <item>Сведение рук в кроссовере</item>
+        <item>Пуловер</item>
+
+        <item>Тяга штанги в наклоне</item>
+        <item>Тяга гантели в наклоне</item>
+        <item>Тяга верхнего блока</item>
+        <item>Тяга нижнего блока</item>
+        <item>Подтягивания</item>
+        <item>Гиперэкстензия</item>
+        <item>Шраги со штангой</item>
+
+        <item>Приседания со штангой</item>
+        <item>Жим ногами</item>
+        <item>Выпады</item>
+        <item>Разгибания ног в тренажере</item>
+        <item>Сгибания ног в тренажере</item>
+        <item>Подъем на носки</item>
+        <item>Становая тяга</item>
+        <item>Румынская тяга</item>
+
+        <item>Жим штанги стоя</item>
+        <item>Жим гантелей сидя</item>
+        <item>Махи гантелями в стороны</item>
+        <item>Махи гантелями перед собой</item>
+        <item>Тяга штанги к подбородку</item>
+        <item>Разведение рук в тренажере</item>
+
+        <item>Подъем штанги на бицепс</item>
+        <item>Подъем гантелей на бицепс</item>
+        <item>Молотки</item>
+        <item>Концентрированный подъем</item>
+        <item>Подъем на скамье Скотта</item>
+
+        <item>Французский жим</item>
+        <item>Разгибания на блоке</item>
+        <item>Отжимания на трицепс</item>
+        <item>Жим узким хватом</item>
+        <item>Разгибания гантели из-за головы</item>
+        <item>Скручивания</item>
+        <item>Подъем ног в висе</item>
+        <item>Планка</item>
+        <item>Велосипед</item>
+        <item>Русский твист</item>
+        <item>Подъем корпуса</item>
+
+        <item>Беговая дорожка</item>
+        <item>Эллиптический тренажер</item>
+        <item>Велотренажер</item>
+        <item>Скакалка</item>
+        <item>Берпи</item>
+        <item>Гребной тренажер</item>
+
+        <item>Бурпи</item>
+        <item>Прыжки на коробку</item>
+        <item>Трастеры</item>
+        <item>Толкание саней</item>
+        <item>Фермерская прогулка</item>
+
+        <item>Отжимания</item>
+        <item>Приседания</item>
+        <item>Выпады на месте</item>
+        <item>Планка</item>
+        <item>Альпинист</item>
+        <item>Скалолаз</item>
+        <item>Лодочка</item>
+
+        <item>Наклоны вперед</item>
+        <item>Растяжка квадрицепса</item>
+        <item>Растяжка задней поверхности бедра</item>
+        <item>Растяжка грудных мышц</item>
+        <item>Растяжка спины</item>
+        <item>Растяжка плеч</item>
+        <item>Боковая растяжка</item>
+
+        <item>Тяга к поясу сидя</item>
+        <item>Сведение ног в тренажере</item>
+        <item>Разведение ног в тренажере</item>
+        <item>Сгибание рук в запястьях</item>
+        <item>Разгибание рук в запястьях</item>
+        <item>Вращение плечами</item>
+    </string-array>
+
+    <string-array name="muscle_groups">
+        <item>Все упражнения</item>
+        <item>Грудь</item>
+        <item>Спина</item>
+        <item>Ноги</item>
+        <item>Плечи</item>
+        <item>Бицепс</item>
+        <item>Трицепс</item>
+        <item>Пресс</item>
+    </string-array>
+
+    <string-array name="workout_types">
+        <item>Сплит</item>
+        <item>Фулбади</item>
+    </string-array>
+    <string-array name="days_of_week">
+        <item>Понедельник</item>
+        <item>Вторник</item>
+        <item>Среда</item>
+        <item>Четверг</item>
+        <item>Пятница</item>
+        <item>Суббота</item>
+        <item>Воскресенье</item>
+    </string-array>
+</resources>

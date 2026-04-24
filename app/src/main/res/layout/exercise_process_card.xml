@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/exerciseRoot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="16dp"
+    android:layout_marginVertical="8dp"
+    android:background="@drawable/rounded_card_background"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:elevation="4dp"
+    android:outlineProvider="background"
+    android:clipToOutline="true"
+    android:radius="16dp">
+
+    <TextView
+        android:id="@+id/tvExerciseName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Жим штанги лежа"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_primary"
+        android:maxLines="1"
+        android:ellipsize="end"
+        tools:text="Жим штанги лежа" />
+
+    <TextView
+        android:id="@+id/tvExerciseDetails"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="3 подхода × 10 повторений"
+        android:textSize="14sp"
+        android:textColor="@color/text_secondary"
+        android:layout_marginTop="4dp"
+        tools:text="3 подхода × 10 повторений" />
+
+    <LinearLayout
+        android:id="@+id/containerSets"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="16dp"
+        android:gravity="center_vertical" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="12dp"
+        android:gravity="center_vertical"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/tvTimer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="01:30"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            tools:text="01:30" />
+
+        <ImageView
+            android:id="@+id/btnPause"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:tint="@color/accent_recovery"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="2dp"
+            android:visibility="gone"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="Пауза"
+            tools:ignore="ContentDescription,UseAppTint" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="16dp"
+        android:gravity="center">
+
+        <Button
+            android:id="@+id/btnRest"
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="Отдых"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/white"
+            android:backgroundTint="@color/accent_recovery"
+/>
+        <Button
+            android:id="@+id/btnStartPause"
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="Старт"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/button_primary_text"
+            android:backgroundTint="@color/primary" />
+    </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:layout_marginTop="12dp"
+        android:progressTint="@color/accent_progress"
+        android:progressBackgroundTint="@color/surface_variant"
+        android:progress="50"
+        android:max="100"
+        android:visibility="gone" />
+</LinearLayout>

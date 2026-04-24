@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/editProfileLayout"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="16dp"
+    app:cardBackgroundColor="@color/background_secondary"
+    app:cardCornerRadius="20dp"
+    app:cardElevation="8dp"
+    app:cardUseCompatPadding="true"
+    tools:context=".ui.EditProfileDialog">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fillViewport="true"
+        android:fadeScrollbars="false">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="24dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Редактирование профиля"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Основная информация"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:textStyle="bold"
+                android:layout_marginBottom="16dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Имя"
+                android:textSize="16sp"
+                android:textColor="@color/text_primary"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/etName"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:hint="Введите имя"
+
+                android:textSize="16sp"
+                android:textColor="@color/text_primary"
+                android:paddingHorizontal="16dp"
+                android:gravity="center_vertical"
+                android:inputType="textPersonName"
+                android:imeOptions="actionNext"
+                android:background="@color/background_tertiary"
+                android:layout_marginBottom="16dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Email"
+                android:textSize="16sp"
+                android:textColor="@color/text_primary"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/etEmail"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:hint="Введите email"
+
+                android:textSize="16sp"
+                android:textColor="@color/text_primary"
+                android:paddingHorizontal="16dp"
+                android:gravity="center_vertical"
+                android:inputType="textEmailAddress"
+                android:imeOptions="actionNext"
+                android:background="@color/background_tertiary"
+                android:layout_marginBottom="16dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Возраст"
+                android:textSize="16sp"
+                android:textColor="@color/text_primary"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/etAge"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:hint="Введите возраст"
+
+                android:textSize="16sp"
+                android:textColor="@color/text_primary"
+                android:paddingHorizontal="16dp"
+                android:gravity="center_vertical"
+                android:inputType="number"
+                android:imeOptions="actionNext"
+                android:background="@color/background_tertiary"
+                android:layout_marginBottom="24dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Физические параметры"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:textStyle="bold"
+                android:layout_marginBottom="16dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginEnd="8dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Вес (кг)"
+                        android:textSize="16sp"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="4dp" />
+
+                    <EditText
+                        android:id="@+id/etWeight"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:hint="Текущий вес"
+
+                        android:textSize="16sp"
+                        android:textColor="@color/text_primary"
+                        android:paddingHorizontal="16dp"
+                        android:gravity="center_vertical"
+                        android:inputType="numberDecimal"
+                        android:imeOptions="actionNext"
+                        android:background="@color/background_tertiary" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="8dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Рост (см)"
+                        android:textSize="16sp"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="4dp" />
+
+                    <EditText
+                        android:id="@+id/etHeight"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:hint="Введите рост"
+
+                        android:textSize="16sp"
+                        android:textColor="@color/text_primary"
+                        android:paddingHorizontal="16dp"
+                        android:gravity="center_vertical"
+                        android:inputType="number"
+                        android:imeOptions="actionNext"
+                        android:background="@color/background_tertiary" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Целевой вес (кг)"
+                android:textSize="16sp"
+                android:textColor="@color/text_primary"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/etTargetWeight"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:hint="Желаемый вес"
+
+                android:textSize="16sp"
+                android:textColor="@color/text_primary"
+                android:paddingHorizontal="16dp"
+                android:gravity="center_vertical"
+                android:inputType="numberDecimal"
+                android:imeOptions="actionNext"
+                android:background="@color/background_tertiary"
+                android:layout_marginBottom="24dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Настройки целей"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:textStyle="bold"
+                android:layout_marginBottom="16dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Пол"
+                    android:textSize="16sp"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginBottom="4dp" />
+
+                <Spinner
+                    android:id="@+id/spGender"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:paddingHorizontal="16dp"
+                    android:background="@color/background_tertiary"
+                    android:layout_marginBottom="8dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Цель"
+                    android:textSize="16sp"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginBottom="4dp" />
+
+                <Spinner
+                    android:id="@+id/spGoal"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:paddingHorizontal="16dp"
+                    android:background="@color/background_tertiary"
+                    android:layout_marginBottom="8dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="24dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Уровень активности"
+                    android:textSize="16sp"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginBottom="4dp" />
+
+                <Spinner
+                    android:id="@+id/spActivity"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:paddingHorizontal="16dp"
+                    android:background="@color/background_tertiary" />
+            </LinearLayout>
+
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardCalculatedGoals"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/background_tertiary"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                android:layout_marginBottom="24dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Дневные цели"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="12dp" />
+
+                    <TextView
+                        android:id="@+id/tvCalculatedGoals"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Заполните все поля для расчета целей"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_secondary"
+                        android:lineSpacingExtra="4dp" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <Button
+                android:id="@+id/btnSave"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:background="@color/accent_progress"
+                android:text="СОХРАНИТЬ ИЗМЕНЕНИЯ"
+                android:textColor="@color/button_primary_text"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.05"
+                android:layout_marginBottom="8dp" />
+        </LinearLayout>
+    </ScrollView>
+</androidx.cardview.widget.CardView>

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Основная темная палитра (Color Palette) -->
+
+    <!-- ===== ПОВЕРХНОСТИ И ФОН (Surfaces & Background) ===== -->
+    <color name="background_primary">#FF121212</color>      <!-- Основной фон экранов -->
+    <color name="background_secondary">#FF1E1E1E</color>    <!-- Карточки, панели -->
+    <color name="background_tertiary">#FF252525</color>     <!-- Всплывающие элементы, выделенные карточки -->
+    <color name="surface_variant">#FF2D2D2D</color>         <!-- Разделители, неактивные элементы -->
+
+    <!-- ===== АКЦЕНТНЫЕ ЦВЕТА (Accent Colors) ===== -->
+    <!-- Основной брендовый цвет -->
+    <color name="primary">#FFBB86FC</color>                 <!-- Основные кнопки, активные элементы -->
+    <color name="primary_variant">#FF3700B3</color>         <!-- Нажатые состояния, темный акцент -->
+
+    <!-- Вторичный акцент -->
+    <color name="secondary">#FF03DAC6</color>               <!-- Второстепенные действия, иконки -->
+
+    <!-- Функциональные акценты -->
+    <color name="accent_training">#FFCF6679</color>         <!-- Для тренировок, энергии -->
+    <color name="accent_nutrition">#FF4CAF50</color>        <!-- Для питания, здоровья -->
+    <color name="accent_recovery">#FF29B6F6</color>         <!-- Для воды, восстановления -->
+    <color name="accent_progress">#FF00C853</color>         <!-- Положительный прогресс, успех -->
+
+    <!-- ===== ТЕКСТ И КОНТЕНТ (Text & Content) ===== -->
+    <color name="text_primary">#FFFFFFFF</color>            <!-- Основной текст (87% непрозрачности) -->
+    <color name="text_secondary">#B3FFFFFF</color>          <!-- Вторичный текст (70% непрозрачности) -->
+    <color name="text_hint">#80FFFFFF</color>               <!-- Подсказки, placeholder (50% непрозрачности) -->
+    <color name="text_disabled">#61FFFFFF</color>           <!-- Неактивный текст (38% непрозрачности) -->
+
+    <!-- ===== СИСТЕМНЫЕ И СОСТОЯНИЯ (System & States) ===== -->
+    <color name="error">#FFCF6679</color>                   <!-- Ошибки, предупреждения -->
+    <color name="success">#FF4CAF50</color>                 <!-- Успешные действия -->
+    <color name="warning">#FFFF9800</color>                 <!-- Предупреждения, внимание -->
+    <color name="info">#FF2196F3</color>                    <!-- Информационные сообщения -->
+
+    <!-- Состояния элементов -->
+    <color name="ripple_color">#33FFFFFF</color>            <!-- Эффект ripple -->
+    <color name="divider">#1FFFFFFF</color>                 <!-- Разделители (12% непрозрачности) -->
+
+    <!-- ===== ОСНОВНЫЕ ЦВЕТА (Basic Colors) ===== -->
+    <!-- Используйте их только в крайних случаях, предпочитайте семантические имена выше -->
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+    <color name="transparent">#00000000</color>
+
+    <!-- ===== ДЛЯ ГРАФИКОВ И ВИЗУАЛИЗАЦИЙ (Charts) ===== -->
+    <!-- Можно использовать в reports.xml -->
+    <color name="chart_protein">#FFCF6679</color>           <!-- Белки (связано с тренировками) -->
+    <color name="chart_carbs">#FFBB86FC</color>             <!-- Углеводы (основной акцент) -->
+    <color name="chart_fats">#FFFF9800</color>              <!-- Жиры (предупреждение/внимание) -->
+    <color name="chart_calories">#FF4CAF50</color>          <!-- Калории (успех/баланс) -->
+
+    <!-- ===== КОМПОНЕНТЫ (Components) ===== -->
+    <color name="button_primary_background">@color/primary</color>
+    <color name="button_primary_text">@color/black</color>  <!-- Для темного фона текст должен быть темным -->
+    <color name="button_secondary_background">@color/background_tertiary</color>
+    <color name="button_secondary_text">@color/text_primary</color>
+
+    <!-- Навигация -->
+    <color name="bottom_nav_background">@color/background_secondary</color>
+    <color name="bottom_nav_active">@color/primary</color>
+    <color name="bottom_nav_inactive">@color/text_secondary</color>
+</resources>

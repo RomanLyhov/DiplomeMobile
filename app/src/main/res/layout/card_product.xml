@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/productCardRoot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp"
+    app:cardBackgroundColor="@color/background_secondary"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp"
+    app:cardUseCompatPadding="true"
+    android:layout_marginHorizontal="4dp"
+    android:clickable="true"
+    android:focusable="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:id="@+id/tvProductName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Название продукта"
+                android:textSize="16sp"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/btnDeleteProduct"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:text="✕"
+                android:textSize="16sp"
+                android:textColor="@color/text_hint"
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?android:attr/selectableItemBackground" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Порция:"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary" />
+
+            <TextView
+                android:id="@+id/tvPortionSize"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="100 г"
+                android:textSize="14sp"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:layout_marginStart="8dp" />
+
+            <TextView
+                android:id="@+id/tvProductCalories"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="150"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/chart_calories" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ккал"
+                android:textSize="12sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginStart="4dp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/rounded_bg_light"
+            android:padding="12dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="БЕЛКИ"
+                    android:textSize="8sp"
+                    android:textColor="@color/text_hint"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.05"
+                    android:layout_marginTop="4dp" />
+                <TextView
+                    android:id="@+id/tvProteinAmount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="12"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/chart_protein" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="г"
+                    android:textSize="10sp"
+                    android:textColor="@color/text_hint"
+                    android:layout_marginTop="2dp" />
+
+
+
+            </LinearLayout>
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="24dp"
+                android:background="@color/surface_variant"
+                android:layout_marginHorizontal="4dp" />
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ЖИРЫ"
+                    android:textSize="8sp"
+                    android:textColor="@color/text_hint"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.05"
+                    android:layout_marginTop="4dp" />
+
+                <TextView
+                    android:id="@+id/tvFatAmount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="8"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/chart_fats" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="г"
+                    android:textSize="10sp"
+                    android:textColor="@color/text_hint"
+                    android:layout_marginTop="2dp" />
+
+
+            </LinearLayout>
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="24dp"
+                android:background="@color/surface_variant"
+                android:layout_marginHorizontal="4dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="УГЛЕВОДЫ"
+                    android:textSize="8sp"
+                    android:textColor="@color/text_hint"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.05"
+                    android:layout_marginTop="4dp" />
+                <TextView
+                    android:id="@+id/tvCarbsAmount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="20"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/chart_carbs" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="г"
+                    android:textSize="10sp"
+                    android:textColor="@color/text_hint"
+                    android:layout_marginTop="2dp" />
+
+
+            </LinearLayout>
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnEditProduct"
+            android:layout_width="match_parent"
+            android:layout_height="36dp"
+            android:layout_marginTop="12dp"
+            android:text="Изменить"
+            android:textSize="12sp"
+            android:textStyle="normal"
+            android:textColor="@color/button_secondary_text"
+            android:backgroundTint="@color/surface_variant"
+            android:background="?android:attr/selectableItemBackgroundBorderless" />
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rootCard"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="16dp"
+    android:layout_marginVertical="8dp"
+    app:cardBackgroundColor="@color/background_secondary"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="6dp"
+    app:cardUseCompatPadding="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:id="@+id/tvExerciseName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Жим лёжа"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:layout_marginBottom="16dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="4">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ПОДХОДЫ"
+                    android:textSize="10sp"
+                    android:textColor="@color/text_hint"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.05" />
+
+                <TextView
+                    android:id="@+id/tvSets"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="3"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginTop="6dp" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="32dp"
+                android:background="@color/divider"
+                android:layout_marginHorizontal="4dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ПОВТОРЫ"
+                    android:textSize="10sp"
+                    android:textColor="@color/text_hint"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.05" />
+
+                <TextView
+                    android:id="@+id/tvReps"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="10"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginTop="6dp" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="32dp"
+                android:background="@color/divider"
+                android:layout_marginHorizontal="4dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ВЕС"
+                    android:textSize="10sp"
+                    android:textColor="@color/text_hint"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.05" />
+
+                <TextView
+                    android:id="@+id/tvWeight"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="60"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/accent_training"
+                    android:layout_marginTop="6dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="кг"
+                    android:textSize="10sp"
+                    android:textColor="@color/text_hint" />
+            </LinearLayout>
+            <View
+                android:layout_width="1dp"
+                android:layout_height="32dp"
+                android:background="@color/divider"
+                android:layout_marginHorizontal="4dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ОТДЫХ"
+                    android:textSize="10sp"
+                    android:textColor="@color/text_hint"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.05" />
+
+                <TextView
+                    android:id="@+id/tvRest"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="60"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/accent_recovery"
+                    android:layout_marginTop="6dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="сек"
+                    android:textSize="10sp"
+                    android:textColor="@color/text_hint" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Подходы"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="8dp" />
+
+        <LinearLayout
+            android:id="@+id/containerSets"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="16dp" />
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="@color/background_tertiary"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Таймер отдыха"
+                    android:textSize="14sp"
+                    android:textColor="@color/text_primary" />
+
+                <TextView
+                    android:id="@+id/tvTimer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="01:00"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/accent_recovery" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:weightSum="3">
+
+            <Button
+                android:id="@+id/btnRest"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="1"
+                android:text="СТАРТ"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/button_primary_text"
+                android:backgroundTint="@color/accent_progress"
+                android:letterSpacing="0.05" />
+
+            <Button
+                android:id="@+id/btnPause"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="1"
+                android:text="СБРОС"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary"
+                android:backgroundTint="@color/background_tertiary"
+                android:letterSpacing="0.05"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/btnTimerAlt"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="1"
+                android:text="01:00"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/button_primary_text"
+                android:backgroundTint="@color/accent_recovery"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnCurrentSet"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="Текущий подход: 1"
+            android:textSize="12sp"
+            android:textColor="@color/button_primary_text"
+            android:backgroundTint="@color/accent_progress"
+            android:layout_marginTop="12dp"
+            android:layout_gravity="center"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>
