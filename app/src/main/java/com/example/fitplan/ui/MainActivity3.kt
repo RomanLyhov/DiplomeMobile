@@ -8,12 +8,11 @@ import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
 import com.example.fitplan.DataBase.DatabaseHelper
 import com.example.fitplan.Models.Api.ApiManager
-import com.example.fitplan.Models.Api.SyncManager
 import com.example.fitplan.Models.User
+import com.example.fitplan.Models.Api.SyncManager
 import com.example.fitplan.R
 import com.example.fitplan.ui.login.Login
 import kotlinx.coroutines.*
@@ -22,6 +21,7 @@ import java.util.concurrent.Executors
 class MainActivity3 : AppCompatActivity() {
 
     private lateinit var bottomPanel: LinearLayout
+
     private var currentTab: String = ""
     var currentUser: User? = null
     private var isUserLoaded = false
@@ -36,7 +36,7 @@ class MainActivity3 : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main3)
-
+        Log.d("SYNC_DEBUG", "START SYNC CALL")
         bottomPanel = findViewById(R.id.bottom_navigation)
         setupPanelClicks()
 
@@ -44,89 +44,271 @@ class MainActivity3 : AppCompatActivity() {
 
         if (savedInstanceState == null) {
 
-            checkAuthAndOpenFragment() // ← СРАЗУ UI
+            checkAuthAndOpenFragment()
 
             CoroutineScope(Dispatchers.IO).launch {
-                SyncManager.syncAll(this@MainActivity3) // ← НЕ БЛОКИРУЕТ UI
+                SyncManager.syncAll(this@MainActivity3)
+
+                withContext(Dispatchers.Main) {
+                    forceRefreshUser()
+                }
+            }
+        }
+    }
+    // В MainActivity3.kt добавьте:
+    fun getUserByLocalId(localId: Long, callback: (User?) -> Unit) {
+        ioExecutor.execute {
+            try {
+                val db = DatabaseHelper(this)
+                val user = db.getUserById(localId)  // ищем по _id
+                handler.post { callback(user) }
+            } catch (e: Exception) {
+                Log.e("DB", "Error loading user", e)
+                handler.post { callback(null) }
+            }
+        }
+    }
+    // 🔥 ГЛАВНОЕ ОБНОВЛЕНИЕ ЮЗЕРА
+    fun forceRefreshUser() {
+        val localUserId = sharedPref.getLong("user_id", -1)  // Это локальный _id
+
+        loadCurrentUser(localUserId) { user ->
+            currentUser = user
+
+            val fragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
+            when (fragment) {
+                is ProfileFragment -> fragment.refreshUserData()
             }
         }
     }
 
-    // ===================== AUTH =====================
+    fun refreshCurrentUser() {
+        val userId = sharedPref.getLong("user_id", -1)
+
+        loadCurrentUser(userId) { user ->
+            currentUser = user
+
+            val fragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
+
+            if (fragment is ProfileFragment) {
+                fragment.refreshUserData()
+            }
+        }
+    }
+
+    // ================= AUTH =================
 
     private fun checkAuthAndOpenFragment() {
-
         val prefs = getSharedPreferences("session", MODE_PRIVATE)
-
         val isLogged = prefs.getBoolean("logged_in", false)
-        val userId = prefs.getLong("user_id", -1L)
         val token = prefs.getString("token", null)
+        val email = prefs.getString("email", null)
 
-        Log.d("AUTH", "isLogged=$isLogged userId=$userId token=$token")
+        Log.d("AUTH", "isLogged=$isLogged, email=$email")
 
-        if (!isLogged || userId == -1L || token.isNullOrEmpty()) {
+        if (!isLogged || token.isNullOrEmpty()) {
             openLogin()
             return
         }
 
         bottomPanel.visibility = View.VISIBLE
 
-        loadCurrentUser(userId) { user ->
-            if (user != null) {
-                currentUser = user
-                isUserLoaded = true
-                openTab("food")
-            } else {
-                openLogin()
-            }
-        }
-    }
-
-    // ===================== LOGIN SUCCESS =====================
-
-    fun onLoginSuccess(userId: Long) {
-
-        Log.d("LOGIN", "onLoginSuccess userId=$userId")
-
-        bottomPanel.visibility = View.VISIBLE
-
-        loadCurrentUser(userId) { user ->
-            if (user != null) {
-                currentUser = user
-                isUserLoaded = true
-                openTab("food")
-            } else {
-                openLogin()
-            }
-        }
-    }
-
-    // ===================== LOAD USER =====================
-
-    private fun loadCurrentUser(userId: Long, onLoaded: (User?) -> Unit) {
-
-        ioExecutor.execute {
+        // Загружаем пользователя с сервера по email
+        CoroutineScope(Dispatchers.IO).launch {
             try {
-                val db = DatabaseHelper(this)
-                val user = db.getUserById(userId)
-                db.close()
+                val users = ApiManager.getUsers()
+                val serverUser = users?.find { it.email == email }
 
-                handler.post {
+                if (serverUser != null) {
+                    // ВАЖНО: используем serverUser.id как локальный ID
+                    val localUser = User(
+                        id = serverUser.id,  // ← server_id, его и используем для обновления!
+                        name = serverUser.name,
+                        email = serverUser.email,
+                        password = serverUser.password ?: "",
+                        age = serverUser.age,
+                        height = serverUser.height,
+                        weight = serverUser.weight,
+                        targetWeight = serverUser.targetWeight,
+                        activity = serverUser.activity,
+                        goal = serverUser.goal,
+                        gender = serverUser.gender,
+                        dailyCaloriesGoal = serverUser.dailyCaloriesGoal,
+                        dailyProteinGoal = serverUser.dailyProteinGoal,
+                        dailyFatGoal = serverUser.dailyFatGoal,
+                        dailyCarbsGoal = serverUser.dailyCarbsGoal
+                    )
+
+                    withContext(Dispatchers.Main) {
+                        currentUser = localUser
+                        isUserLoaded = true
+                        openTab("food")
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        Log.e("AUTH", "User not found on server")
+                        openLogin()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("AUTH", "Error loading user from server", e)
+                withContext(Dispatchers.Main) {
+                    openLogin()
+                }
+            }
+        }
+    }
+    fun refreshUserFromServer() {
+        val email = sharedPref.getString("email", null) ?: return
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val users = ApiManager.getUsers()
+                val serverUser = users?.find { it.email == email }
+
+                if (serverUser != null) {
+                    val localUser = User(
+                        id = serverUser.id,
+                        name = serverUser.name,
+                        email = serverUser.email,
+                        password = serverUser.password ?: "",
+                        age = serverUser.age,
+                        height = serverUser.height,
+                        weight = serverUser.weight,
+                        targetWeight = serverUser.targetWeight,
+                        activity = serverUser.activity,
+                        goal = serverUser.goal,
+                        gender = serverUser.gender,
+                        dailyCaloriesGoal = serverUser.dailyCaloriesGoal,
+                        dailyProteinGoal = serverUser.dailyProteinGoal,
+                        dailyFatGoal = serverUser.dailyFatGoal,
+                        dailyCarbsGoal = serverUser.dailyCarbsGoal
+                    )
+
+                    withContext(Dispatchers.Main) {
+                        currentUser = localUser
+                        val fragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
+                        if (fragment is ProfileFragment) {
+                            fragment.refreshUserData()
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("REFRESH", "Error refreshing user", e)
+            }
+        }
+    }
+    // ================= LOGIN =================
+
+    fun onLoginSuccess(email: String) {
+        bottomPanel.visibility = View.VISIBLE
+        retryLoadUser(email, 10)
+    }
+
+    private fun retryLoadUser(email: String, attempts: Int) {
+        loadUserByEmail(email) { user ->
+            if (user != null) {
+                currentUser = user
+                isUserLoaded = true
+                openTab("food")
+            } else if (attempts > 0) {
+                handler.postDelayed({
+                    retryLoadUser(email, attempts - 1)
+                }, 500)
+            } else {
+                Toast.makeText(this, "Ошибка загрузки профиля", Toast.LENGTH_SHORT).show()
+                openLogin()
+            }
+        }
+    }
+
+    private fun loadUserByEmail(email: String, onLoaded: (User?) -> Unit) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val users = ApiManager.getUsers()
+                val serverUser = users?.find { it.email == email }
+
+                val user = if (serverUser != null) {
+                    User(
+                        id = serverUser.id,
+                        name = serverUser.name,
+                        email = serverUser.email,
+                        password = serverUser.password ?: "",
+                        age = serverUser.age,
+                        height = serverUser.height,
+                        weight = serverUser.weight,
+                        targetWeight = serverUser.targetWeight,
+                        activity = serverUser.activity,
+                        goal = serverUser.goal,
+                        gender = serverUser.gender,
+                        dailyCaloriesGoal = serverUser.dailyCaloriesGoal,
+                        dailyProteinGoal = serverUser.dailyProteinGoal,
+                        dailyFatGoal = serverUser.dailyFatGoal,
+                        dailyCarbsGoal = serverUser.dailyCarbsGoal
+                    )
+                } else null
+
+                withContext(Dispatchers.Main) {
                     onLoaded(user)
                 }
-
             } catch (e: Exception) {
-                handler.post {
+                Log.e("LOAD", "Error loading user by email", e)
+                withContext(Dispatchers.Main) {
                     onLoaded(null)
                 }
             }
         }
     }
+    fun updateCurrentUserFromDb() {
+        val email = sharedPref.getString("email", null) ?: return
+        ioExecutor.execute {
+            val db = DatabaseHelper(this)
+            val user = db.getUserByEmail(email)
+            handler.post {
+                if (user != null) {
+                    currentUser = user
+                    val fragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
+                    if (fragment is ProfileFragment) {
+                        fragment.refreshUserData()
+                    }
+                }
+            }
+        }
+    }
+    // ================= LOAD USER =================
 
-    // ===================== LOGIN SCREEN =====================
+    private fun loadCurrentUser(userId: Long, onLoaded: (User?) -> Unit) {
+        ioExecutor.execute {
+            try {
+                val db = DatabaseHelper(this)
+                val user = db.getUserById(userId)
+
+                // ОТЛАДКА
+                Log.d("LOAD_USER", "Looking for user with localId=$userId")
+                if (user == null) {
+                    Log.e("LOAD_USER", "User NOT FOUND with id=$userId")
+                    // Показываем всех пользователей в БД
+                    val allUsers = db.getAllUsers()
+                    Log.d("LOAD_USER", "All users in DB (${allUsers.size}):")
+                    allUsers.forEach {
+                        Log.d("LOAD_USER", "  - localId=${it.id}, email=${it.email}, name=${it.name}")
+                    }
+                } else {
+                    Log.d("LOAD_USER", "Found user: ${user.email}")
+                }
+
+                db.close()
+                handler.post { onLoaded(user) }
+            } catch (e: Exception) {
+                Log.e("DB", "Error loading user", e)
+                handler.post { onLoaded(null) }
+            }
+        }
+    }
+
+    // ================= LOGIN SCREEN =================
 
     private fun openLogin() {
-
         currentUser = null
         isUserLoaded = false
 
@@ -139,7 +321,7 @@ class MainActivity3 : AppCompatActivity() {
         }
     }
 
-    // ===================== TABS =====================
+    // ================= TABS =================
 
     private fun openTab(tab: String) {
 
@@ -161,7 +343,7 @@ class MainActivity3 : AppCompatActivity() {
         }
     }
 
-    // ===================== NAV =====================
+    // ================= NAV =================
 
     private fun setupPanelClicks() {
 

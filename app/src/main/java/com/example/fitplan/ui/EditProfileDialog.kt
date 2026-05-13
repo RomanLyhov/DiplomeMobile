@@ -1,6 +1,7 @@
 package com.example.fitplan.ui
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -11,15 +12,15 @@ import android.widget.*
 import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.lifecycleScope
 import com.example.fitplan.DataBase.DatabaseHelper
+import com.example.fitplan.Models.Api.ApiManager
 import com.example.fitplan.Models.User
-import com.example.fitplan.Models.Api.SyncManager
+import com.example.fitplan.Models.UserDto
 import com.example.fitplan.R
 import com.example.fitplan.Utils.MacroCalculator
 import kotlinx.coroutines.*
 
 class EditProfileDialog(
     private var user: User,
-    private val db: DatabaseHelper,
     private val onSave: () -> Unit
 ) : DialogFragment() {
 
@@ -27,8 +28,6 @@ class EditProfileDialog(
     private lateinit var spGender: Spinner
     private lateinit var spGoal: Spinner
     private lateinit var spActivity: Spinner
-
-    private var lastCalculatedGoals: MacroCalculator.MacroGoals? = null
 
     private val genderMapping = mapOf(
         "Мужской" to "male",
@@ -58,7 +57,6 @@ class EditProfileDialog(
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-
         val etName = view.findViewById<EditText>(R.id.etName)
         val etEmail = view.findViewById<EditText>(R.id.etEmail)
         val etAge = view.findViewById<EditText>(R.id.etAge)
@@ -75,25 +73,28 @@ class EditProfileDialog(
 
         setupSpinners()
 
-        lifecycleScope.launch {
+        // Заполняем поля
+        etName.setText(user.name)
+        etEmail.setText(user.email)
+        etAge.setText(user.age?.toString() ?: "")
+        etWeight.setText(user.weight?.toString() ?: "")
+        etHeight.setText(user.height?.toString() ?: "")
+        etTargetWeight.setText(user.targetWeight?.toString() ?: "")
 
-            val freshUser = withContext(Dispatchers.IO) {
-                db.getUserById(user.id)
-            }
+        val genderIndex = genderMapping.values.indexOf(user.gender)
+        if (genderIndex >= 0) spGender.setSelection(genderIndex)
 
-            if (freshUser != null) {
-                user = freshUser
-            }
+        val activityIndex = activityMapping.values.indexOf(user.activity)
+        if (activityIndex >= 0) spActivity.setSelection(activityIndex)
 
-            fillFields(view)
+        val goalIndex = goalMapping.values.indexOf(user.goal)
+        if (goalIndex >= 0) spGoal.setSelection(goalIndex)
 
-        }
-
-        @SuppressLint("SetTextI18n")
         fun calculateAndDisplayGoals() {
             val age = etAge.text.toString().toIntOrNull()
             val weight = etWeight.text.toString().toIntOrNull()
             val height = etHeight.text.toString().toIntOrNull()
+            val targetWeight = etTargetWeight.text.toString().toIntOrNull()
 
             val gender = getSelectedGender()
             val activity = getSelectedActivityLevel()
@@ -104,70 +105,47 @@ class EditProfileDialog(
             ) return
 
             val tempUser = user.copy(
-                age = age,
-                weight = weight,
-                height = height,
-                gender = gender,
-                activity = activity,
-                goal = goal
+                age = age, weight = weight, height = height,
+                targetWeight = targetWeight, gender = gender,
+                activity = activity, goal = goal
             )
 
-            lastCalculatedGoals = MacroCalculator.calculateDailyGoals(tempUser)
+            val macros = MacroCalculator.calculateDailyGoals(tempUser)
 
             tvCalculatedGoals.text = """
                 КБЖУ:
-                Калории: ${lastCalculatedGoals?.calories} ккал
-                Белки: ${lastCalculatedGoals?.protein} г
-                Жиры: ${lastCalculatedGoals?.fat} г
-                Углеводы: ${lastCalculatedGoals?.carbs} г
+                Калории: ${macros?.calories} ккал
+                Белки: ${macros?.protein} г
+                Жиры: ${macros?.fat} г
+                Углеводы: ${macros?.carbs} г
             """.trimIndent()
         }
 
-
-
-        fun attachAutoCalc() {
-
-            val watcher = object : TextWatcher {
-                override fun afterTextChanged(s: Editable?) = calculateAndDisplayGoals()
-                override fun beforeTextChanged(
-                    s: CharSequence?,
-                    start: Int,
-                    count: Int,
-                    after: Int
-                ) {
-                }
-
-                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            }
-
-            etAge.addTextChangedListener(watcher)
-            etWeight.addTextChangedListener(watcher)
-            etHeight.addTextChangedListener(watcher)
-            etTargetWeight.addTextChangedListener(watcher)
-
-            val listener = object : AdapterView.OnItemSelectedListener {
-                override fun onItemSelected(
-                    parent: AdapterView<*>?,
-                    view: View?,
-                    position: Int,
-                    id: Long
-                ) {
-                    calculateAndDisplayGoals()
-                }
-
-                override fun onNothingSelected(parent: AdapterView<*>?) {}
-            }
-
-            spGender.onItemSelectedListener = listener
-            spGoal.onItemSelectedListener = listener
-            spActivity.onItemSelectedListener = listener
+        val watcher = object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) = calculateAndDisplayGoals()
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
         }
 
-        attachAutoCalc()
+        etAge.addTextChangedListener(watcher)
+        etWeight.addTextChangedListener(watcher)
+        etHeight.addTextChangedListener(watcher)
+        etTargetWeight.addTextChangedListener(watcher)
+
+        val listener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                calculateAndDisplayGoals()
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+
+        spGender.onItemSelectedListener = listener
+        spGoal.onItemSelectedListener = listener
+        spActivity.onItemSelectedListener = listener
+
         calculateAndDisplayGoals()
 
         btnSave.setOnClickListener {
-
             val name = etName.text.toString().trim()
             val email = etEmail.text.toString().trim()
             val age = etAge.text.toString().toIntOrNull()
@@ -180,105 +158,101 @@ class EditProfileDialog(
                 return@setOnClickListener
             }
 
-            if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                Toast.makeText(requireContext(), "Некорректный email", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
+            val gender = getSelectedGender() ?: "male"
+            val activity = getSelectedActivityLevel() ?: "MODERATE"
+            val goal = getSelectedGoal() ?: "MAINTENANCE"
 
-            val updatedBase = user.copy(
-                name = name,
-                email = email,
-                age = age,
-                weight = weight,
-                height = height,
-                targetWeight = targetWeight,
-                gender = getSelectedGender() ?: "male",
-                activity = getSelectedActivityLevel() ?: "MODERATE",
-                goal = getSelectedGoal() ?: "MAINTENANCE"
+            val tempUser = user.copy(
+                age = age, weight = weight, height = height,
+                targetWeight = targetWeight, gender = gender,
+                activity = activity, goal = goal
             )
+            val macros = MacroCalculator.calculateDailyGoals(tempUser)
 
-            val calc = MacroCalculator.calculateDailyGoals(updatedBase)
-            Log.d("DEBUG", "UPDATED BASE = $updatedBase")
-            Log.d("DEBUG", "CALCULATED = $calc")
-            val updatedUser = updatedBase.copy(
-                dailyCaloriesGoal = calc?.calories,
-                dailyProteinGoal = calc?.protein,
-                dailyFatGoal = calc?.fat,
-                dailyCarbsGoal = calc?.carbs
-            )
+            btnSave.isEnabled = false
+            btnSave.text = "Сохранение..."
 
-            viewLifecycleOwner.lifecycleScope.launch {
-
+            lifecycleScope.launch(Dispatchers.IO) {
                 try {
-                    withContext(Dispatchers.IO) {
-                        db.updateUser(updatedUser)
-                        SyncManager.syncAll(requireContext().applicationContext)
+                    // ВАЖНО: получаем правильный server_id из SharedPreferences!
+                    val prefs = requireContext().getSharedPreferences("session", Context.MODE_PRIVATE)
+                    val emailFromPrefs = prefs.getString("email", null)
+
+                    // Получаем пользователя с сервера по email, чтобы узнать правильный ID
+                    val users = ApiManager.getUsers()
+                    val serverUser = users?.find { it.email == (emailFromPrefs ?: email) }
+
+                    val correctServerId = serverUser!!.id
+
+                    Log.d("EDIT_PROFILE", "=== ОТПРАВКА ===")
+                    Log.d("EDIT_PROFILE", "user.id (локальный): ${user.id}")
+                    Log.d("EDIT_PROFILE", "correctServerId: $correctServerId")
+                    Log.d("EDIT_PROFILE", "targetWeight: $targetWeight")
+
+                    val userDto = UserDto(
+                        id = correctServerId,  // ← ИСПОЛЬЗУЕМ ПРАВИЛЬНЫЙ ID!
+                        name = name,
+                        email = email,
+                        password = null,
+                        age = age,
+                        height = height,
+                        weight = weight,
+                        targetWeight = targetWeight,
+                        activity = activity,
+                        goal = goal,
+                        gender = gender,
+                        dailyCaloriesGoal = macros?.calories ?: 2000,
+                        dailyProteinGoal = macros?.protein ?: 150,
+                        dailyFatGoal = macros?.fat ?: 60,
+                        dailyCarbsGoal = macros?.carbs ?: 200
+                    )
+                    Log.d("EDIT_PROFILE", "=== ОТПРАВКА НА СЕРВЕР ===")
+                    Log.d("EDIT_PROFILE", "user.id (будет отправлен): ${user.id}")
+                    Log.d("EDIT_PROFILE", "targetWeight: $targetWeight")
+                    val success = ApiManager.updateUser(correctServerId, userDto)
+                    if (success) {
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            val db = DatabaseHelper(requireContext())
+
+                            db.updateUserMacros(
+                                correctServerId,
+                                macros?.calories,
+                                macros?.protein,
+                                macros?.fat,
+                                macros?.carbs
+                            )
+                        }
                     }
 
-                    if (!isAdded) return@launch
-
-                    onSave()
-                    Toast.makeText(requireContext(), "Сохранено", Toast.LENGTH_SHORT).show()
-
-                    dismissAllowingStateLoss()   // 🔥 ВОТ ЭТО ВАЖНО
-
+                    withContext(Dispatchers.Main) {
+                        if (success) {
+                            (activity as? MainActivity3)?.refreshUserFromServer()
+                            onSave()
+                            Toast.makeText(requireContext(), "Профиль сохранён", Toast.LENGTH_SHORT).show()
+                            dismiss()
+                        } else {
+                            Toast.makeText(requireContext(), "Ошибка сохранения", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 } catch (e: Exception) {
-                    if (isAdded) {
+                    Log.e("EDIT_PROFILE", "Error", e)
+                    withContext(Dispatchers.Main) {
                         Toast.makeText(requireContext(), "Ошибка: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+                } finally {
+                    withContext(Dispatchers.Main) {
+                        btnSave.isEnabled = true
+                        btnSave.text = "Сохранить"
                     }
                 }
             }
         }
     }
 
-    private fun fillFields(view: View) {
-
-        val etName = view.findViewById<EditText>(R.id.etName)
-        val etEmail = view.findViewById<EditText>(R.id.etEmail)
-        val etAge = view.findViewById<EditText>(R.id.etAge)
-        val etWeight = view.findViewById<EditText>(R.id.etWeight)
-        val etHeight = view.findViewById<EditText>(R.id.etHeight)
-        val etTargetWeight = view.findViewById<EditText>(R.id.etTargetWeight)
-
-        etName.setText(user.name)
-        etEmail.setText(user.email)
-        etAge.setText(user.age?.toString() ?: "")
-        etWeight.setText(user.weight?.toString() ?: "")
-        etHeight.setText(user.height?.toString() ?: "")
-        etTargetWeight.setText(user.targetWeight?.toString() ?: "")
-
-        setSpinnerSelection()
-    }
-
-    private fun setSpinnerSelection() {
-
-        val genderIndex = genderMapping.values.indexOf(user.gender)
-        if (genderIndex >= 0) spGender.setSelection(genderIndex)
-
-        val activityIndex = activityMapping.values.indexOf(user.activity)
-        if (activityIndex >= 0) spActivity.setSelection(activityIndex)
-
-        val goalIndex = goalMapping.values.indexOf(user.goal)
-        if (goalIndex >= 0) spGoal.setSelection(goalIndex)
-    }
     private fun setupSpinners() {
-        spGender.adapter = ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_spinner_item,
-            genderMapping.keys.toList()
-        )
-
-        spActivity.adapter = ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_spinner_item,
-            activityMapping.keys.toList()
-        )
-
-        spGoal.adapter = ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_spinner_item,
-            goalMapping.keys.toList()
-        )
+        spGender.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, genderMapping.keys.toList())
+        spActivity.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, activityMapping.keys.toList())
+        spGoal.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, goalMapping.keys.toList())
     }
 
     private fun getSelectedGender() = genderMapping[spGender.selectedItem?.toString()]
@@ -287,9 +261,6 @@ class EditProfileDialog(
 
     override fun onStart() {
         super.onStart()
-        dialog?.window?.setLayout(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        )
+        dialog?.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
     }
 }

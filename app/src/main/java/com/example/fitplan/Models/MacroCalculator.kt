@@ -91,12 +91,10 @@ object MacroCalculator {
     }
 
     private fun calculateTDEE(bmr: Double, activityLevel: String): Int {
-        val multiplier = when (activityLevel.lowercase()) {
-            "sedentary" -> SEDENTARY_MULTIPLIER
-            "light" -> LIGHT_ACTIVE_MULTIPLIER
-            "moderate" -> MODERATE_ACTIVE_MULTIPLIER
-            "active" -> VERY_ACTIVE_MULTIPLIER
-            "very_active" -> EXTRA_ACTIVE_MULTIPLIER
+        val multiplier = when (activityLevel.uppercase()) {
+            "LIGHT" -> LIGHT_ACTIVE_MULTIPLIER
+            "MODERATE" -> MODERATE_ACTIVE_MULTIPLIER
+            "VERY_ACTIVE" -> VERY_ACTIVE_MULTIPLIER
             else -> SEDENTARY_MULTIPLIER
         }
         return (bmr * multiplier).roundToInt()

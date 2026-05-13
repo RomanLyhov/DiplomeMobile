@@ -1,6 +1,7 @@
 package com.example.fitplan.ui
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -36,6 +37,7 @@ class Reg : Fragment() {
         val activitySpinner = view.findViewById<Spinner>(R.id.activityLevelSpinner)
         val goalSpinner = view.findViewById<Spinner>(R.id.goalSpinner)
         val maleBtn = view.findViewById<RadioButton>(R.id.maleRadioButton)
+        val femaleBtn = view.findViewById<RadioButton>(R.id.femaleRadioButton)
         val registerBtn = view.findViewById<Button>(R.id.registerButton)
         val loginLink = view.findViewById<TextView>(R.id.loginTextView)
 
@@ -56,17 +58,34 @@ class Reg : Fragment() {
         // Обработчик кнопки регистрации
         registerBtn.setOnClickListener {
             if (checkFields(email, password, password2, name)) {
+                // Получаем выбранные значения из спиннеров и переводим в английские
+                val activityValue = when (activitySpinner.selectedItem.toString()) {
+                    "Низкий" -> "LIGHT"
+                    "Средний" -> "MODERATE"
+                    "Высокий" -> "VERY_ACTIVE"
+                    else -> "MODERATE"
+                }
+
+                val goalValue = when (goalSpinner.selectedItem.toString()) {
+                    "Похудеть" -> "WEIGHT_LOSS"
+                    "Набрать массу" -> "WEIGHT_GAIN"
+                    "Поддерживать вес" -> "MAINTENANCE"
+                    else -> "MAINTENANCE"
+                }
+
+                val genderValue = if (maleBtn.isChecked) "male" else "female"
+
                 saveUser(
-                    email.text.toString(),
-                    password.text.toString(),
-                    name.text.toString(),
-                    age.text.toString(),
-                    height.text.toString(),
-                    weight.text.toString(),
-                    targetWeight.text.toString(),
-                    if (maleBtn.isChecked) "Мужской" else "Женский",
-                    activitySpinner.selectedItem.toString(),
-                    goalSpinner.selectedItem.toString()
+                    email = email.text.toString(),
+                    password = password.text.toString(),
+                    name = name.text.toString(),
+                    age = age.text.toString(),
+                    height = height.text.toString(),
+                    weight = weight.text.toString(),
+                    targetWeight = targetWeight.text.toString(),
+                    gender = genderValue,
+                    activity = activityValue,
+                    goal = goalValue
                 )
             }
         }
@@ -81,16 +100,21 @@ class Reg : Fragment() {
 
     // Настройка выпадающих списков (спиннеров)
     private fun setupSpinners(activitySpinner: Spinner, goalSpinner: Spinner) {
-        activitySpinner.adapter = ArrayAdapter(
+        val activityAdapter = ArrayAdapter(
             requireContext(),
             android.R.layout.simple_spinner_item,
             arrayOf("Низкий", "Средний", "Высокий")
         )
-        goalSpinner.adapter = ArrayAdapter(
+        activityAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        activitySpinner.adapter = activityAdapter
+
+        val goalAdapter = ArrayAdapter(
             requireContext(),
             android.R.layout.simple_spinner_item,
             arrayOf("Похудеть", "Набрать массу", "Поддерживать вес")
         )
+        goalAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        goalSpinner.adapter = goalAdapter
     }
 
     // Проверка заполненности обязательных полей
@@ -119,25 +143,73 @@ class Reg : Fragment() {
     ) {
         CoroutineScope(Dispatchers.IO).launch {
 
-            val success = ApiManager.addUser(
-                com.example.fitplan.Models.UserDto(
-                    id = 0,
-                    name = name,
-                    email = email,
-                    password = password,
-                    age = age.toIntOrNull(),
-                    height = height.toIntOrNull(),
-                    weight = weight.toIntOrNull()
-                )
+            val ageInt = age.toIntOrNull()
+            val heightInt = height.toIntOrNull()
+            val weightInt = weight.toIntOrNull()
+            val targetWeightInt = targetWeight.toIntOrNull()
+
+            Log.d("Reg", "=== ОТПРАВКА РЕГИСТРАЦИИ ===")
+            Log.d("Reg", "name=$name")
+            Log.d("Reg", "email=$email")
+            Log.d("Reg", "age=$ageInt")
+            Log.d("Reg", "height=$heightInt")
+            Log.d("Reg", "weight=$weightInt")
+            Log.d("Reg", "targetWeight=$targetWeightInt")
+            Log.d("Reg", "gender=$gender")
+            Log.d("Reg", "activity=$activity")
+            Log.d("Reg", "goal=$goal")
+
+            val tempUser = com.example.fitplan.Models.User(
+                id = 0,
+                name = name,
+                email = email,
+                password = password,
+                age = ageInt,
+                height = heightInt,
+                weight = weightInt,
+                targetWeight = targetWeightInt,
+                gender = gender,
+                activity = activity,
+                goal = goal,
+                dailyCaloriesGoal = null,
+                dailyProteinGoal = null,
+                dailyFatGoal = null,
+                dailyCarbsGoal = null
             )
+
+            val macros = com.example.fitplan.Utils.MacroCalculator
+                .calculateDailyGoals(tempUser)
+
+            Log.d("MACROS", "calories=${macros?.calories}")
+            Log.d("MACROS", "protein=${macros?.protein}")
+            Log.d("MACROS", "fat=${macros?.fat}")
+            Log.d("MACROS", "carbs=${macros?.carbs}")
+
+            val userDto = com.example.fitplan.Models.UserDto(
+                id = 0,
+                name = name,
+                email = email,
+                password = password,
+                age = ageInt,
+                height = heightInt,
+                weight = weightInt,
+                targetWeight = targetWeightInt,
+                gender = gender,
+                activity = activity,
+                goal = goal,
+
+                dailyCaloriesGoal = macros?.calories,
+                dailyProteinGoal = macros?.protein,
+                dailyFatGoal = macros?.fat,
+                dailyCarbsGoal = macros?.carbs
+            )
+
+            val success = ApiManager.addUser(userDto)
 
             withContext(Dispatchers.Main) {
                 if (success) {
                     Toast.makeText(requireContext(), "Регистрация успешна", Toast.LENGTH_SHORT).show()
-
-                    // 👉 после регистрации сразу логинимся
                     parentFragmentManager.popBackStack()
-
                 } else {
                     Toast.makeText(requireContext(), "Ошибка регистрации", Toast.LENGTH_SHORT).show()
                 }

@@ -29,7 +29,7 @@ object SyncManager {
     suspend fun syncAll(context: Context) {
 
         logFlow("================ START SYNC ================")
-
+        var onSyncFinished: (() -> Unit)? = null
         if (!isNetworkAvailable(context)) {
             logFlow("❌ NO INTERNET")
             return
@@ -40,6 +40,14 @@ object SyncManager {
         val db = DatabaseHelper(context)
         val prefs = context.getSharedPreferences("session", MODE_PRIVATE)
         val userId = prefs.getLong("user_id", -1L)
+        val users = ApiManager.getUsers()
+        logFlow("📦 USERS FROM SERVER = ${users?.size}")
+
+        users?.forEach { userDto ->
+            logFlow("👤 USER ${userDto.email} (id=${userDto.id})")
+            val insertedId = db.insertUserFromServer(userDto)
+            logFlow("✅ insertUserFromServer returned $insertedId for ${userDto.email}")
+        }
 
         logFlow("👤 userId=$userId")
 
@@ -57,12 +65,36 @@ object SyncManager {
             // ================= USERS =================
             logFlow("⬇️ USERS DOWNLOAD START")
 
-            val users = ApiManager.getUsers()
-            logFlow("📦 USERS FROM SERVER = ${users?.size}")
+            val serverUsers = ApiManager.getUsers()
+            logFlow("📦 USERS FROM SERVER = ${serverUsers?.size}")
 
-            users?.forEach {
-                logFlow("👤 USER ${it.email}")
-                db.insertUserFromServer(it)
+            val prefs = context.getSharedPreferences("session", MODE_PRIVATE)
+            val currentUserEmail = prefs.getString("email", null)
+
+            serverUsers?.forEach { dto ->
+                logFlow("👤 Processing user: ${dto.email} (serverId=${dto.id})")
+
+                val existingByEmail = db.getUserByEmail(dto.email)
+
+                if (existingByEmail != null) {
+                    logFlow("📝 Updating existing user: ${dto.email}")
+                    db.updateUserFromServer(dto)
+                    // ВАЖНО: обновляем server_id у локального пользователя
+                    db.updateUserServerId(existingByEmail.id, dto.id)
+                } else {
+                    logFlow("➕ Inserting new user: ${dto.email}")
+                    val newLocalId = db.insertUserFromServer(dto)
+                    logFlow("✅ Inserted with localId=$newLocalId")
+                }
+            }
+
+// Если текущий пользователь есть в БД, обновляем его ID в SharedPreferences
+            if (currentUserEmail != null) {
+                val localId = db.getLocalUserIdByEmail(currentUserEmail)
+                if (localId != null && localId != prefs.getLong("user_id", -1L)) {
+                    logFlow("🔄 Updating session user_id from ${prefs.getLong("user_id", -1)} to $localId")
+                    prefs.edit().putLong("user_id", localId).apply()
+                }
             }
 
             // ================= WORKOUTS =================
@@ -113,7 +145,10 @@ object SyncManager {
         }
 
         logFlow("================ END SYNC ================")
+        onSyncFinished?.invoke()
     }
+
+
 
     private suspend fun pushLocalChangesToServer(db: DatabaseHelper) {
 
@@ -127,8 +162,11 @@ object SyncManager {
 
                 logFlow("➡️ PUSH USER ${user.email}")
 
+                // Получаем server_id для этого пользователя
+                val serverId = db.getUserServerId(user.id)
+
                 val dto = UserDto(
-                    id = user.id,
+                    id = serverId ?: 0L,  // Используем server_id если есть
                     name = user.name,
                     email = user.email,
                     password = user.password,
@@ -145,13 +183,17 @@ object SyncManager {
                     dailyCarbsGoal = user.dailyCarbsGoal
                 )
 
-                val success = if (user.id > 0) {
-                    ApiManager.updateUser(dto)
+                // Правильный вызов updateUser с двумя параметрами
+                val success = if (serverId != null && serverId > 0L) {
+                    // Обновляем существующего пользователя - передаём serverId и dto
+                    ApiManager.updateUser(serverId, dto)
                 } else {
+                    // Создаём нового пользователя
                     ApiManager.addUser(dto)
                 }
 
                 logFlow("📡 USER RESULT ${user.email} success=$success")
+                logFlow("UNSYNCED USERS = ${db.getUnsyncedUsers().size}")
 
                 if (success) {
                     db.markUserSynced(user.id)
@@ -162,7 +204,8 @@ object SyncManager {
             }
 
         } catch (e: Exception) {
-            logFlow("❌ USERS PUSH ERROR")
+            logFlow("❌ USERS PUSH ERROR: ${e.message}")
+            Log.e("SyncManager", "Push users error", e)
         }
 
         // ================= WORKOUTS =================
@@ -193,7 +236,7 @@ object SyncManager {
             }
 
         } catch (e: Exception) {
-            logFlow("❌ WORKOUT PUSH ERROR")
+            logFlow("❌ WORKOUT PUSH ERROR: ${e.message}")
         }
 
         // ================= MEALS =================
@@ -215,7 +258,8 @@ object SyncManager {
                     protein = meal.protein,
                     fat = meal.fat,
                     carbs = meal.carbs,
-                    mealType = meal.mealType
+                    mealType = meal.mealType,
+                    date = meal.date
                 )
 
                 val success = ApiManager.addMeal(dto)
@@ -229,7 +273,7 @@ object SyncManager {
             }
 
         } catch (e: Exception) {
-            logFlow("❌ MEAL PUSH ERROR")
+            logFlow("❌ MEAL PUSH ERROR: ${e.message}")
         }
     }
 

@@ -2,6 +2,7 @@ package com.example.fitplan.ui
 
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -74,7 +75,7 @@ class ProfileFragment : Fragment() {
         btnEditProfile.setOnClickListener {
             val mainActivity = activity as? MainActivity3
             mainActivity?.currentUser?.let { user ->
-                val dialog = EditProfileDialog(user, db) {
+                val dialog = EditProfileDialog(user) {  // ← убрали db параметр
                     refreshUserData()
                 }
                 dialog.show(parentFragmentManager, "edit_profile")
@@ -88,39 +89,90 @@ class ProfileFragment : Fragment() {
     }
 
     // Загрузка данных пользователя из базы данных
+    // Загрузка данных пользователя - теперь с сервера
     private fun loadUser() {
-        if (userId == -1L) return
+        val prefs = requireContext().getSharedPreferences("session", Context.MODE_PRIVATE)
+        val email = prefs.getString("email", null) ?: return
 
         CoroutineScope(Dispatchers.IO).launch {
-            val user = db.getUserById(userId)
-            withContext(Dispatchers.Main) {
-                if (user != null) {
-                    (activity as? MainActivity3)?.currentUser = user
-                    updateUI(user)
-                } else {
-                    Toast.makeText(context, "Пользователь не найден", Toast.LENGTH_SHORT).show()
+            try {
+                val users = ApiManager.getUsers()
+                val serverUser = users?.find { it.email == email }
+
+                withContext(Dispatchers.Main) {
+                    if (serverUser != null) {
+                        val user = User(
+                            id = serverUser.id,
+                            name = serverUser.name,
+                            email = serverUser.email,
+                            password = serverUser.password ?: "",
+                            age = serverUser.age,
+                            height = serverUser.height,
+                            weight = serverUser.weight,
+                            targetWeight = serverUser.targetWeight,
+                            activity = serverUser.activity,
+                            goal = serverUser.goal,
+                            gender = serverUser.gender,
+                            dailyCaloriesGoal = serverUser.dailyCaloriesGoal,
+                            dailyProteinGoal = serverUser.dailyProteinGoal,
+                            dailyFatGoal = serverUser.dailyFatGoal,
+                            dailyCarbsGoal = serverUser.dailyCarbsGoal
+                        )
+                        (activity as? MainActivity3)?.currentUser = user
+                        updateUI(user)
+                    } else {
+                        Toast.makeText(context, "Пользователь не найден", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("Profile", "Error loading user", e)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Ошибка загрузки профиля", Toast.LENGTH_SHORT).show()
                 }
             }
         }
     }
 
-    // Обновление данных пользователя (используется после редактирования)
-    private fun refreshUserData() {
-        if (userId == -1L) return
+    // Обновление данных пользователя
+    fun refreshUserData() {
+        val prefs = requireContext().getSharedPreferences("session", Context.MODE_PRIVATE)
+        val email = prefs.getString("email", null) ?: return
 
         CoroutineScope(Dispatchers.IO).launch {
-            val user = db.getUserById(userId)
-            withContext(Dispatchers.Main) {
-                user?.let {
-                    (activity as? MainActivity3)?.currentUser = it
-                    updateUI(it)
-                    Toast.makeText(context, "Данные обновлены", Toast.LENGTH_SHORT).show()
+            try {
+                val users = ApiManager.getUsers()
+                val serverUser = users?.find { it.email == email }
+
+                withContext(Dispatchers.Main) {
+                    if (serverUser != null) {
+                        val user = User(
+                            id = serverUser.id,
+                            name = serverUser.name,
+                            email = serverUser.email,
+                            password = serverUser.password ?: "",
+                            age = serverUser.age,
+                            height = serverUser.height,
+                            weight = serverUser.weight,
+                            targetWeight = serverUser.targetWeight,
+                            activity = serverUser.activity,
+                            goal = serverUser.goal,
+                            gender = serverUser.gender,
+                            dailyCaloriesGoal = serverUser.dailyCaloriesGoal,
+                            dailyProteinGoal = serverUser.dailyProteinGoal,
+                            dailyFatGoal = serverUser.dailyFatGoal,
+                            dailyCarbsGoal = serverUser.dailyCarbsGoal
+                        )
+                        (activity as? MainActivity3)?.currentUser = user
+                        updateUI(user)
+                        Toast.makeText(context, "Данные обновлены", Toast.LENGTH_SHORT).show()
+                    }
                 }
+            } catch (e: Exception) {
+                Log.e("Profile", "Error refreshing user", e)
             }
         }
     }
 
-    // Обновление интерфейса с данными пользователя
     private fun updateUI(user: User) {
         tvName.text = user.name
         tvEmail.text = user.email

@@ -14,7 +14,6 @@ import com.example.fitplan.Models.Api.ApiManager
 import com.example.fitplan.R
 import com.example.fitplan.ui.MainActivity3
 import com.example.fitplan.ui.Reg
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -99,19 +98,23 @@ class Login : Fragment() {
 
                         val prefs = requireContext().getSharedPreferences("session", MODE_PRIVATE)
 
-                        Log.d("LOGIN", "SAVE SESSION userId=${result.id}")
+                        Log.d("LOGIN", "SAVE SESSION userId=${result.id}, email=$email")
 
+                        // ========== ИСПРАВЛЕНИЕ ТУТ ==========
+                        // Сохраняем email и token, НО НЕ ИСПОЛЬЗУЕМ user_id для поиска в БД
                         prefs.edit()
                             .putString("token", result.token ?: "")
-                            .putLong("user_id", result.id)
+                            .putString("email", email)           // ← СОХРАНЯЕМ EMAIL
+                            .putLong("user_id", result.id)       // сохраняем на всякий случай, но не используем
                             .putBoolean("logged_in", true)
                             .apply()
 
                         ApiManager.clearCache()
 
-                        Log.d("LOGIN", "SESSION SAVED = ${prefs.all}")
+                        Log.d("LOGIN", "SESSION SAVED: email=$email, token=${result.token}")
 
-                        (activity as MainActivity3).onLoginSuccess(result.id)
+                        // Передаём EMAIL, а не ID
+                        (activity as MainActivity3).onLoginSuccess(email)
 
                     } else {
                         Toast.makeText(

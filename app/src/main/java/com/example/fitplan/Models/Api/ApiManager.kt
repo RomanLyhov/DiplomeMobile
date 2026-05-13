@@ -151,30 +151,90 @@ object ApiManager {
 
     suspend fun login(email: String, password: String): LoginResponse? {
         return try {
-            val response = serverApi.login(LoginRequest(email, password))
-            if (response.isSuccessful) response.body() else null
+            Log.d("API", "➡️ login email=$email")
+
+            val response = serverApi.login(
+                LoginRequest(email, password)
+            )
+
+            Log.d("API", "login code=${response.code()}")
+            Log.d("API", "login body=${response.body()}")
+            Log.d("API", "login error=${response.errorBody()?.string()}")
+
+            if (response.isSuccessful) {
+                response.body()
+            } else {
+                null
+            }
+
         } catch (e: Exception) {
             Log.e("ApiManager", "login error", e)
             null
         }
     }
 
-    suspend fun updateUser(user: UserDto): Boolean {
+    // В ApiManager.kt исправьте updateUser:
+    suspend fun updateUser(userId: Long, user: UserDto): Boolean {
         return try {
-            Log.d("API", "➡️ updateUser id=${user.id}")
-            Log.d("API_DEBUG", "FULL USER DTO = $user")
-            val response = serverApi.updateUser(user.id, user)
 
-            Log.d("API", "code=${response.code()}")
-            Log.d("API", "body=${response.body()}")
-            Log.d("API", "error=${response.errorBody()?.string()}")
+            Log.d("API", "=== UPDATE USER ===")
+            Log.d("API", "userId=$userId")
 
-            response.isSuccessful && response.body()?.success == true
+            // DTO -> User
+            val tempUser = User(
+                id = user.id,
+                name = user.name,
+                email = user.email,
+                password = user.password ?: "",
+                age = user.age,
+                height = user.height,
+                weight = user.weight,
+                targetWeight = user.targetWeight,
+                activity = user.activity,
+                goal = user.goal,
+                gender = user.gender,
+                dailyCaloriesGoal = user.dailyCaloriesGoal,
+                dailyProteinGoal = user.dailyProteinGoal,
+                dailyFatGoal = user.dailyFatGoal,
+                dailyCarbsGoal = user.dailyCarbsGoal
+            )
+
+            // ================= РАСЧЕТ МАКРОСОВ =================
+
+            val macros = com.example.fitplan.Utils.MacroCalculator
+                .calculateDailyGoals(tempUser)
+
+            Log.d("API", "Macros=$macros")
+
+            // ================= СОЗДАЕМ ОБНОВЛЕННОГО USER =================
+
+            val updatedUser = user.copy(
+                dailyCaloriesGoal = macros?.calories,
+                dailyProteinGoal = macros?.protein,
+                dailyFatGoal = macros?.fat,
+                dailyCarbsGoal = macros?.carbs
+            )
+
+            Log.d("API", "dailyCaloriesGoal=${updatedUser.dailyCaloriesGoal}")
+            Log.d("API", "dailyProteinGoal=${updatedUser.dailyProteinGoal}")
+            Log.d("API", "dailyFatGoal=${updatedUser.dailyFatGoal}")
+            Log.d("API", "dailyCarbsGoal=${updatedUser.dailyCarbsGoal}")
+
+            // ================= ОТПРАВКА =================
+
+            val response = serverApi.updateUser(userId, updatedUser)
+
+            Log.d("API", "response code=${response.code()}")
+            Log.d("API", "response body=${response.body()}")
+
+            response.isSuccessful &&
+                    response.body()?.success == true
 
         } catch (e: Exception) {
-            Log.e("API", "updateUser crash", e)
 
+            Log.e("API", "updateUser crash", e)
             false
+
         }
     }
 

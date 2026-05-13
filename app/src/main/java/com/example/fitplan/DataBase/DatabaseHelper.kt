@@ -19,7 +19,7 @@ class DatabaseHelper(context: Context) :
     SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
     companion object {
         private const val DATABASE_NAME = "FitPlanDB.db"
-        private const val DATABASE_VERSION = 13
+        private const val DATABASE_VERSION = 15
 
         const val TABLE_USERS = "users"
         const val TABLE_WORKOUTS = "workouts"
@@ -45,13 +45,13 @@ class DatabaseHelper(context: Context) :
         val db = this.writableDatabase
 
         val values = ContentValues().apply {
-            put("is_synced", 0)
+            put("synced", 0)
         }
 
         db.update(
             "users",
             values,
-            "id = ?",
+            "_id = ?",
             arrayOf(userId.toString())
         )
     }
@@ -61,6 +61,7 @@ class DatabaseHelper(context: Context) :
             db.execSQL("""
                 CREATE TABLE $TABLE_USERS (
                     $COL_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                     server_id INTEGER UNIQUE,
                     $COL_NAME TEXT,
                     $COL_EMAIL TEXT,
                     $COL_PASSWORD TEXT,
@@ -378,6 +379,7 @@ class DatabaseHelper(context: Context) :
         return if (index != -1 && !cursor.isNull(index)) cursor.getString(index) else null
     }
 
+
     private fun querySingle(
         table: String,
         selection: String? = null,
@@ -473,12 +475,87 @@ class DatabaseHelper(context: Context) :
         return id
     }
 
-    fun getUserById(userId: Long): User? {
-        return querySingle(
-            table = TABLE_USERS,
-            selection = "$COL_ID = ?",
-            selectionArgs = arrayOf(userId.toString())
-        )?.toUser()
+    // В DatabaseHelper.kt
+
+    fun getAllUsers(): List<User> {
+        val users = mutableListOf<User>()
+        val db = readableDatabase
+        val cursor = db.query(TABLE_USERS, null, null, null, null, null, null)
+        while (cursor.moveToNext()) {
+            users.add(cursorToUser(cursor))
+        }
+        cursor.close()
+        return users
+    }
+
+    private fun cursorToUser(cursor: Cursor): User {
+        val id = cursor.getLong(cursor.getColumnIndexOrThrow("_id"))          // локальный ID
+        val serverId = cursor.getLong(cursor.getColumnIndexOrThrow("server_id")) // если есть
+        val name = cursor.getString(cursor.getColumnIndexOrThrow(COL_NAME))
+        val email = cursor.getString(cursor.getColumnIndexOrThrow(COL_EMAIL))
+        val password = cursor.getString(cursor.getColumnIndexOrThrow(COL_PASSWORD))
+        val age = cursor.getInt(cursor.getColumnIndexOrThrow("age"))
+        val height = cursor.getInt(cursor.getColumnIndexOrThrow("height"))
+        val weight = cursor.getInt(cursor.getColumnIndexOrThrow("current_weight"))
+        val targetWeight = cursor.getInt(cursor.getColumnIndexOrThrow("target_weight"))
+        val activity = cursor.getString(cursor.getColumnIndexOrThrow("activity_level"))
+        val goal = cursor.getString(cursor.getColumnIndexOrThrow("goal"))
+        val gender = cursor.getString(cursor.getColumnIndexOrThrow("gender"))
+        val dailyCaloriesGoal = cursor.getInt(cursor.getColumnIndexOrThrow("daily_calories_goal"))
+        val dailyProteinGoal = cursor.getInt(cursor.getColumnIndexOrThrow("daily_protein_goal"))
+        val dailyFatGoal = cursor.getInt(cursor.getColumnIndexOrThrow("daily_fat_goal"))
+        val dailyCarbsGoal = cursor.getInt(cursor.getColumnIndexOrThrow("daily_carbs_goal"))
+
+        return User(
+            id = id,                     // локальный _id
+            name = name,
+            email = email,
+            password = password,
+            age = age,
+            height = height,
+            weight = weight,
+            targetWeight = targetWeight,
+            activity = activity,
+            goal = goal,
+            gender = gender,
+            dailyCaloriesGoal = dailyCaloriesGoal,
+            dailyProteinGoal = dailyProteinGoal,
+            dailyFatGoal = dailyFatGoal,
+            dailyCarbsGoal = dailyCarbsGoal
+        )
+    }
+
+    // В getUserById:
+    // В DatabaseHelper.kt исправьте getUserById:
+    fun getUserById(localId: Long): User? {
+        val cursor = readableDatabase.rawQuery(
+            "SELECT * FROM users WHERE _id = ?",
+            arrayOf(localId.toString())
+        )
+
+        return cursor.use {
+            if (it.moveToNext()) cursorToUser(it) else null
+        }
+    }
+
+    // В DatabaseHelper.kt добавьте:
+    fun getUserServerId(localUserId: Long): Long? {
+        val cursor = readableDatabase.rawQuery(
+            "SELECT server_id FROM $TABLE_USERS WHERE $COL_ID = ?",
+            arrayOf(localUserId.toString())
+        )
+        return cursor.use {
+            if (it.moveToFirst() && !it.isNull(0)) it.getLong(0) else null
+        }
+    }
+
+    fun updateUserServerId(localUserId: Long, serverId: Long) {
+        writableDatabase.update(
+            TABLE_USERS,
+            ContentValues().apply { put("server_id", serverId) },
+            "$COL_ID = ?",
+            arrayOf(localUserId.toString())
+        )
     }
 
     fun getUserByCredentials(email: String, password: String): User? {
@@ -534,8 +611,18 @@ class DatabaseHelper(context: Context) :
             "$COL_ID = ?",
             arrayOf(user.id.toString())
         )
+        Log.d("DB", "USER MARKED UNSYNCED: ${user.id}")
     }
 
+    fun getUserByEmail(email: String): User? {
+        val cursor = readableDatabase.rawQuery(
+            "SELECT * FROM $TABLE_USERS WHERE $COL_EMAIL = ?",
+            arrayOf(email)
+        )
+        return cursor.use {
+            if (it.moveToFirst()) cursorToUser(it) else null
+        }
+    }
     fun addWorkout(userId: Long, name: String): Long {
         return writableDatabase.insert(TABLE_WORKOUTS, null, ContentValues().apply {
             put(COL_USER_ID, userId)
@@ -822,9 +909,12 @@ class DatabaseHelper(context: Context) :
     }
 
     fun markUserSynced(userId: Long) {
-        updateTable(TABLE_USERS, ContentValues().apply {
-            put("synced", 1)
-        }, "$COL_ID = ?", arrayOf(userId.toString()))
+        updateTable(
+            TABLE_USERS,
+            ContentValues().apply { put("synced", 1) },
+            "$COL_ID = ?",
+            arrayOf(userId.toString())
+        )
     }
 
     // Аналогично для Workouts
@@ -1132,40 +1222,49 @@ class DatabaseHelper(context: Context) :
     fun updateUserFromServer(userDto: UserDto) {
         val existingUser = getUserByEmail(userDto.email)
 
-        writableDatabase.update(
+        val values = ContentValues().apply {
+            put("server_id", userDto.id)  // ВАЖНО: сохраняем server_id
+            put(COL_NAME, userDto.name)
+            put(COL_EMAIL, userDto.email)
+            if (!userDto.password.isNullOrEmpty()) {
+                put(COL_PASSWORD, userDto.password)
+            } else {
+                put(COL_PASSWORD, existingUser?.password)
+            }
+            put("age", userDto.age)
+            put("height", userDto.height)
+            put("current_weight", userDto.weight)
+            put("target_weight", userDto.targetWeight)
+            put("activity_level", userDto.activity)
+            put("goal", userDto.goal)
+            put("gender", userDto.gender)
+            put("daily_calories_goal", userDto.dailyCaloriesGoal)
+            put("daily_protein_goal", userDto.dailyProteinGoal)
+            put("daily_fat_goal", userDto.dailyFatGoal)
+            put("daily_carbs_goal", userDto.dailyCarbsGoal)
+            put("synced", 1)
+        }
+
+        val updated = writableDatabase.update(
             TABLE_USERS,
-            ContentValues().apply {
-                put("name", userDto.name)
-                put("email", userDto.email)
-
-                // ❗ ВАЖНО: не перезаписываем пароль если его нет
-                if (!userDto.password.isNullOrEmpty()) {
-                    put("password", userDto.password)
-                } else {
-                    put("password", existingUser?.password)
-                }
-
-                put("age", userDto.age)
-                put("height", userDto.height)
-                put("current_weight", userDto.weight)
-                put("target_weight", userDto.targetWeight)
-                put("activity_level", userDto.activity)
-                put("goal", userDto.goal)
-                put("gender", userDto.gender)
-
-            },
+            values,
             "$COL_EMAIL = ?",
             arrayOf(userDto.email)
         )
+
+        Log.d("DB", "updateUserFromServer: updated=$updated rows for email=${userDto.email}")
+
+        // Если не нашли по email, пробуем по server_id
+        if (updated == 0) {
+            writableDatabase.update(
+                TABLE_USERS,
+                values,
+                "server_id = ?",
+                arrayOf(userDto.id.toString())
+            )
+        }
     }
 
-    fun getUserByEmail(email: String): User? {
-        return querySingle(
-            table = TABLE_USERS,
-            selection = "$COL_EMAIL = ?",
-            selectionArgs = arrayOf(email)
-        )?.toUser()
-    }
     fun clearWorkouts() {
         writableDatabase.delete(TABLE_WORKOUTS, null, null)
     }
@@ -1195,6 +1294,29 @@ class DatabaseHelper(context: Context) :
             whereClause = "$COL_ID = ?",
             whereArgs = arrayOf(mealItemId.toString())
         ) > 0
+    }
+    fun updateUserMacros(
+        userId: Long,
+        calories: Int?,
+        protein: Int?,
+        fat: Int?,
+        carbs: Int?
+    ) {
+        val db = writableDatabase
+
+        val values = ContentValues().apply {
+            put("dailycaloriesgoal", calories)
+            put("dailyproteingoal", protein)
+            put("dailyfatgoal", fat)
+            put("dailycarbsgoal", carbs)
+        }
+
+        db.update(
+            "users",
+            values,
+            "userid = ?",
+            arrayOf(userId.toString())
+        )
     }
     suspend fun getDailySummary(userId: Long): DailySummary? = withContext(Dispatchers.IO) {
         readableDatabase.rawQuery("""
@@ -1382,49 +1504,69 @@ class DatabaseHelper(context: Context) :
         )?.toMeal()
     }
 
+    // В DatabaseHelper.kt:
     fun insertUserFromServer(userDto: UserDto): Long {
         val db = writableDatabase
 
+        // Сначала проверяем по email
+        val existingByEmail = getUserByEmail(userDto.email)
+        if (existingByEmail != null) {
+            updateUserFromServer(userDto)
+            return existingByEmail.id
+        }
+
+        // Проверяем по server_id
+        val existingByServerId = getUserByServerId(userDto.id)
+        if (existingByServerId != null) {
+            updateUserFromServer(userDto)
+            return existingByServerId.id
+        }
+
         val values = ContentValues().apply {
-            put(COL_ID, userDto.id)
+            put("server_id", userDto.id)
             put(COL_NAME, userDto.name)
             put(COL_EMAIL, userDto.email)
-
+            put(COL_PASSWORD, userDto.password ?: "")
             put("age", userDto.age)
             put("height", userDto.height)
-
-            // ✅ ПРАВИЛЬНЫЕ ПОЛЯ БД:
             put("current_weight", userDto.weight)
             put("target_weight", userDto.targetWeight)
-
             put("activity_level", userDto.activity)
             put("goal", userDto.goal)
             put("gender", userDto.gender)
-
             put("daily_calories_goal", userDto.dailyCaloriesGoal)
             put("daily_protein_goal", userDto.dailyProteinGoal)
             put("daily_fat_goal", userDto.dailyFatGoal)
             put("daily_carbs_goal", userDto.dailyCarbsGoal)
-
-            if (!userDto.password.isNullOrEmpty()) {
-                put(COL_PASSWORD, userDto.password)
-            }
-
             put("synced", 1)
         }
 
-        val id = db.insertWithOnConflict(
-            TABLE_USERS,
-            null,
-            values,
-            SQLiteDatabase.CONFLICT_REPLACE
-        )
-
-        Log.d("DB", "Server user inserted: email=${userDto.email}, id=$id")
-
-        return id
+        val newId = db.insert(TABLE_USERS, null, values)
+        Log.d("DB", "insertUserFromServer: newId=$newId for email=${userDto.email}, serverId=${userDto.id}")
+        return newId
     }
 
+    fun getLocalUserIdByEmail(email: String): Long? {
+        val cursor = readableDatabase.rawQuery(
+            "SELECT _id FROM $TABLE_USERS WHERE $COL_EMAIL = ?",
+            arrayOf(email)
+        )
+        return cursor.use {
+            if (it.moveToFirst()) it.getLong(0) else null
+        }
+    }
+// В DatabaseHelper.kt добавьте этот метод:
+
+    fun getUserByServerId(serverId: Long): User? {
+        val cursor = readableDatabase.rawQuery(
+            "SELECT * FROM $TABLE_USERS WHERE server_id = ?",
+            arrayOf(serverId.toString())
+        )
+
+        return cursor.use {
+            if (it.moveToFirst()) cursorToUser(it) else null
+        }
+    }
     private fun getStartOfDay(): Long {
         return Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)
