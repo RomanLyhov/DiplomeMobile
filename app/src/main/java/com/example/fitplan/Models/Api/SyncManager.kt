@@ -59,7 +59,7 @@ object SyncManager {
 
             // ================= PUSH =================
             logFlow("⬆️ PUSH LOCAL CHANGES START")
-            pushLocalChangesToServer(db)
+            pushLocalChangesToServer(db, prefs)
             logFlow("⬆️ PUSH LOCAL CHANGES END")
 
             // ================= USERS =================
@@ -100,7 +100,14 @@ object SyncManager {
             // ================= WORKOUTS =================
             logFlow("⬇️ WORKOUTS DOWNLOAD START")
 
-            val workouts = ApiManager.getWorkouts(userId)
+            val serverUserId = prefs.getLong("server_user_id", -1L)
+
+            if (serverUserId == -1L) {
+                logFlow("❌ NO SERVER USER ID")
+                return
+            }
+
+            val workouts = ApiManager.getWorkouts(serverUserId)
             logFlow("📦 WORKOUTS = ${workouts?.size}")
 
             workouts?.forEach { workout ->
@@ -110,18 +117,27 @@ object SyncManager {
 
                 if (exists == null) {
                     logFlow("➕ INSERT workout")
-                    db.insertWorkoutFromServer(workout.userId, workout.name)
+                    db.insertWorkoutFromServer(
+                        userId,
+                        workout.name,
+                        workout.id
+                    )
                 } else {
                     logFlow("🔄 UPDATE workout")
                     db.updateWorkoutFromServer(workout)
                 }
             }
 
+
+
             // ================= MEALS =================
             logFlow("⬇️ MEALS DOWNLOAD START")
 
-            val meals = ApiManager.getMeals(userId)
-            logFlow("📦 MEALS = ${meals?.size}")
+            val meals = ApiManager.getMeals(
+                userId,
+                0L,
+                Long.MAX_VALUE
+            )
 
             meals?.forEach {
                 logFlow("🍽 meal=${it.mealType}")
@@ -134,8 +150,9 @@ object SyncManager {
             val exercises = ApiManager.getExercises(userId)
             logFlow("📦 EXERCISES = ${exercises?.size}")
 
+            db.deleteAllExercises() // 🔥 ДОБАВЬ ЭТО
+
             exercises?.forEach {
-                logFlow("💪 exercise sync")
                 db.insertExerciseFromServer(it)
             }
 
@@ -150,9 +167,10 @@ object SyncManager {
 
 
 
-    private suspend fun pushLocalChangesToServer(db: DatabaseHelper) {
+    private suspend fun pushLocalChangesToServer(db: DatabaseHelper, prefs: android.content.SharedPreferences) {
 
         try {
+
             logFlow("⬆️ PUSH USERS START")
 
             val users = db.getUnsyncedUsers()
@@ -207,73 +225,41 @@ object SyncManager {
             logFlow("❌ USERS PUSH ERROR: ${e.message}")
             Log.e("SyncManager", "Push users error", e)
         }
-
         // ================= WORKOUTS =================
         try {
             logFlow("⬆️ PUSH WORKOUTS START")
 
-            val workouts = db.getUnsyncedWorkouts()
-            logFlow("📦 unsynced WORKOUTS = ${workouts.size}")
+            val unsynced = db.getUnsyncedWorkouts()
+            val serverUserId = prefs.getLong("server_user_id", -1L)
 
-            workouts.forEach { workout ->
+            if (serverUserId == -1L) {
+                logFlow("❌ NO SERVER USER ID → skip workouts push")
+            } else {
+                val unsynced = db.getUnsyncedWorkouts()
 
-                logFlow("➡️ PUSH WORKOUT ${workout.name}")
+                unsynced.forEach { w ->
+                    logFlow("➡️ PUSH WORKOUT ${w.name}")
 
-                val dto = WorkoutDto(
-                    id = 0,
-                    userId = workout.userId,
-                    name = workout.name
-                )
+                    val serverId = ApiManager.addWorkout(
+                        WorkoutDto(
+                            id = 0,
+                            userId = serverUserId,
+                            name = w.name
+                        )
+                    )
 
-                val success = ApiManager.addWorkout(dto)
-
-                logFlow("📡 WORKOUT RESULT=$success")
-
-                if (success) {
-                    db.markWorkoutSynced(workout.id)
-                    logFlow("✅ WORKOUT SYNCED")
+                    if (serverId != null && serverId > 0L) {
+                        db.updateWorkoutServerId(w.id, serverId)
+                        db.markWorkoutSynced(w.id)
+                        logFlow("✅ WORKOUT SYNCED ${w.name}")
+                    } else {
+                        logFlow("❌ WORKOUT FAILED ${w.name}")
+                    }
                 }
             }
 
         } catch (e: Exception) {
-            logFlow("❌ WORKOUT PUSH ERROR: ${e.message}")
-        }
-
-        // ================= MEALS =================
-        try {
-            logFlow("⬆️ PUSH MEALS START")
-
-            val meals = db.getUnsyncedMeals()
-            logFlow("📦 unsynced MEALS = ${meals.size}")
-
-            meals.forEach { meal ->
-
-                logFlow("➡️ PUSH MEAL ${meal.mealType}")
-
-                val dto = MealDto(
-                    userId = meal.userId,
-                    productId = meal.productId,
-                    quantity = meal.quantity,
-                    calories = meal.calories,
-                    protein = meal.protein,
-                    fat = meal.fat,
-                    carbs = meal.carbs,
-                    mealType = meal.mealType,
-                    date = meal.date
-                )
-
-                val success = ApiManager.addMeal(dto)
-
-                logFlow("📡 MEAL RESULT=$success")
-
-                if (success) {
-                    db.markMealSynced(meal.id)
-                    logFlow("✅ MEAL SYNCED")
-                }
-            }
-
-        } catch (e: Exception) {
-            logFlow("❌ MEAL PUSH ERROR: ${e.message}")
+            Log.e(FLOW_TAG, "WORKOUT PUSH ERROR", e)
         }
     }
 

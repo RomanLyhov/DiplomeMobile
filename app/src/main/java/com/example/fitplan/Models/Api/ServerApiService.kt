@@ -23,20 +23,30 @@ interface ServerApiService {
         @Path("id") id: Long,
         @Body user: UserDto
     ): Response<ServerResponse>
-
+    @PUT("workouts/{id}")
+    suspend fun updateWorkout(
+        @Path("id") id: Long,
+        @Body workout: WorkoutDto
+    ): Response<ServerResponse>
     @POST("workouts")
     suspend fun addWorkout(@Body workout: WorkoutDto): Response<ServerResponse>
     @POST("/login")
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
-    @GET("workouts")
-    suspend fun getWorkouts(@Query("userId") userId: Long): Response<List<WorkoutDto>>
-    @POST("nutrition")
+    @GET("workouts/{userId}")
+    suspend fun getWorkouts(
+        @Path("userId") userId: Long
+    ): Response<List<WorkoutDto>>
+    @POST("meals")
     suspend fun addMeal(@Body meal: MealDto): Response<ServerResponse>
     @POST("/users/sync")
     suspend fun syncUsers(@Body users: List<UserDto>): Response<ApiResponse>
 
     @GET("meals")
-    suspend fun getMeals(@Query("userId") userId: Long): Response<List<MealDto>>
+    suspend fun getMeals(
+        @Query("userId") userId: Long,
+        @Query("start") start: Long,
+        @Query("end") end: Long
+    ): Response<List<MealDto>>
 
     @GET("products")
     suspend fun getProducts(): Response<List<ProductDto>>
@@ -45,5 +55,5 @@ interface ServerApiService {
     suspend fun addExercise(@Body exercise: WorkoutExerciseDto): Response<ServerResponse>
 
     @GET("exercises")
-    suspend fun getExercises(@Query("userId") userId: Long): Response<List<WorkoutExerciseDto>>
+    suspend fun getExercises(@Query("workoutId") workoutId: Long): Response<List<WorkoutExerciseDto>>
 }

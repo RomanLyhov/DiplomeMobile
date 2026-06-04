@@ -114,10 +114,21 @@ class MealsAdapter(
 
             // Используем product_item.xml для каждого продукта
             products.forEach { product ->
-                val productView = LayoutInflater.from(itemView.context)
-                    .inflate(R.layout.card_product, null) // Исправлено на product_item
 
-                bindProductView(productView, product, mealType)
+                val productView = LayoutInflater
+                    .from(itemView.context)
+                    .inflate(
+                        R.layout.card_product,
+                        productsContainer,
+                        false
+                    )
+
+                bindProductView(
+                    productView,
+                    product,
+                    mealType
+                )
+
                 productsContainer.addView(productView)
             }
         }
@@ -174,15 +185,19 @@ class MealsAdapter(
         notifyDataSetChanged()
     }
 
-    fun updateMealProducts(mealType: String, products: List<MealProductDisplay>) {
+    fun updateMealProducts(
+        mealType: String,
+        products: List<MealProductDisplay>
+    ) {
+
         mealProductsMap[mealType] = products
 
-        // Если прием пищи уже раскрыт, обновляем его
-        if (expandedMeals.contains(mealType)) {
-            val position = meals.indexOfFirst { it.mealType == mealType }
-            if (position != -1) {
-                notifyItemChanged(position)
-            }
+        val position = meals.indexOfFirst {
+            it.mealType == mealType
+        }
+
+        if (position != -1) {
+            notifyItemChanged(position)
         }
     }
 

@@ -1,64 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/background_primary">
+    android:background="@color/background_primary"
+    android:padding="16dp">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Мои тренировки"
-        android:textSize="24sp"
+        android:textSize="26sp"
         android:textStyle="bold"
         android:textColor="@color/text_primary"
         android:gravity="center"
-        android:layout_marginTop="24dp"
-        android:layout_marginBottom="8dp" />
+        android:layout_marginTop="20dp"/>
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Список ваших тренировочных программ"
-        android:textSize="14sp"
+        android:text="Список программ"
+        android:textSize="13sp"
         android:textColor="@color/text_secondary"
         android:gravity="center"
-        android:layout_marginBottom="24dp" />
+        android:layout_marginBottom="16dp"/>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:background="@drawable/rounded_card_background"
-        android:padding="16dp"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginBottom="24dp"
-        android:elevation="4dp"
-        android:outlineProvider="background"
-        android:clipToOutline="true"
-        android:radius="16dp">
+        android:layout_marginBottom="16dp">
 
         <Button
             android:id="@+id/createWorkoutButton"
             android:layout_width="0dp"
-            android:layout_height="56dp"
+            android:layout_height="50dp"
             android:layout_weight="1"
             android:text="+ Добавить"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="@color/button_primary_text"
-            android:backgroundTint="@color/primary"
-            android:layout_marginEnd="8dp" />
+            android:textColor="@android:color/white"
+            android:backgroundTint="@color/primary"/>
 
         <Button
             android:id="@+id/btnRefresh"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:text="🔄"
-            android:textSize="20sp"
-            android:textColor="@color/text_secondary"
-            android:backgroundTint="@color/background_tertiary" />
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:text="↻"
+            android:layout_marginStart="8dp"
+            android:backgroundTint="@color/background_tertiary"/>
     </LinearLayout>
 
     <LinearLayout
@@ -66,15 +54,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="@drawable/rounded_card_background"
-        android:padding="40dp"
+        android:padding="30dp"
+        android:background="@color/background_secondary"
         android:gravity="center"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginTop="8dp"
-        android:elevation="4dp"
-        android:outlineProvider="background"
-        android:clipToOutline="true"
-        android:radius="20dp"
         android:visibility="gone">
 
         <TextView
@@ -83,26 +65,19 @@
             android:text="Нет тренировок"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:textColor="@color/text_primary"
-            android:layout_marginBottom="8dp" />
-
+            android:textColor="@color/text_primary"/>
     </LinearLayout>
 
     <ScrollView
-        android:id="@+id/scrollView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:fillViewport="true"
-        android:fadeScrollbars="false">
+        android:layout_weight="1">
 
         <LinearLayout
             android:id="@+id/containerWorkouts"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="8dp"
-            android:paddingBottom="24dp" />
+            android:orientation="vertical"/>
     </ScrollView>
 
 </LinearLayout>

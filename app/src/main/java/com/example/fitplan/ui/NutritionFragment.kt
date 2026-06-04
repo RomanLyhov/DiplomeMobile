@@ -13,6 +13,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.fitplan.App
+import com.example.fitplan.Models.Api.ApiManager
 import com.example.fitplan.Models.MealProductDisplay
 import com.example.fitplan.Models.User
 import com.example.fitplan.R
@@ -184,7 +185,38 @@ class NutritionFragment : Fragment() {
         updateWeekDaySelection(position)
         loadMealsForDate(selectedDate)
     }
+    override fun onResume() {
+        super.onResume()
+        // Обновляем цели пользователя при возвращении на фрагмент
+        val prefs = requireContext().getSharedPreferences("session", Context.MODE_PRIVATE)
+        val email = prefs.getString("email", null)
 
+        if (email != null) {
+            viewLifecycleOwner.lifecycleScope.launch {
+                try {
+                    val users = ApiManager.getUsers()
+                    val serverUser = users?.find { it.email == email }
+                    if (serverUser != null) {
+                        dailyGoal = serverUser.dailyCaloriesGoal ?: 2000
+                        dailyProteinGoal = serverUser.dailyProteinGoal ?: 120
+                        dailyFatGoal = serverUser.dailyFatGoal ?: 55
+                        dailyCarbsGoal = serverUser.dailyCarbsGoal ?: 250
+
+                        withContext(Dispatchers.Main) {
+                            dailyGoalTextView.text = "$dailyGoal ккал"
+                            updateDailySummary()
+                        }
+                        Log.d("NutritionFragment", "Цели обновлены с сервера: $dailyGoal ккал")
+                    }
+                } catch (e: Exception) {
+                    Log.e("NutritionFragment", "Ошибка обновления целей", e)
+                }
+            }
+        }
+
+        // Перезагружаем данные для текущей даты
+        loadMealsForDateAsync(selectedDate)
+    }
     private fun updateWeekDaySelection(selectedPosition: Int)
     {
         for(i in 0 until weekCalendarLayout.childCount)
@@ -205,101 +237,80 @@ class NutritionFragment : Fragment() {
 
     private fun loadMealsForDate(date: Date)
     {
-       val displayFormat = SimpleDateFormat("d.M.yyyy", Locale.getDefault())
+        selectedDate = date
+
+        val displayFormat = SimpleDateFormat("d.M.yyyy", Locale.getDefault())
         dateTextView.text = displayFormat.format(date)
-        val dbDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        val dateString = dbDateFormat.format(date)
+
         loadMealsForDateAsync(date)
     }
 
-    private fun loadMealsForDateAsync(date:Date)
-    {
+    private fun loadMealsForDateAsync(date: Date) {
+
         loadMealsJob?.cancel()
 
         loadMealsJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
-                // Получаем ID пользователя из SharedPreferences
-                val prefs = requireContext().getSharedPreferences("session", Context.MODE_PRIVATE)
-                val userId = prefs.getLong("user_id", -1L)
-                if (userId == -1L) {
-                    Log.e("NutritionFragment", "User ID not found")
-                    return@launch
+
+                val prefs = requireContext()
+                    .getSharedPreferences("session", Context.MODE_PRIVATE)
+
+                val userId = prefs.getLong("server_user_id", -1L)
+                if (userId == -1L) return@launch
+
+                // 1. ЗАБИРАЕМ ВСЕ СЕРВЕРНЫЕ ДАННЫЕ
+                val start = normalizeDate(date)
+                val end = start + 86_400_000
+
+                val meals = withContext(Dispatchers.IO) {
+                    ApiManager.getMeals(userId, start, end)
+                }
+                Log.d("MEALS_DEBUG", "USER_ID = $userId")
+                Log.d("MEALS_DEBUG", "MEALS SIZE = ${meals.size}")
+
+                meals.forEach {
+                    Log.d("MEALS_DEBUG", "meal => type=${it.mealType}, date=${it.date}")
+                }
+                val filtered = meals
+                // 4. ГРУППИРОВКА ПО ТИПУ ПРИЕМА ПИЩИ
+                val grouped = filtered.groupBy {
+                    it.mealType?.trim() ?: "Другое"
                 }
 
-                // Получаем данные пользователя для целей
-                val db = App.instance.db
-                val user = withContext(Dispatchers.IO) {
-                    db.getUserById(userId)
-                }
-
-                // Обновляем цели из профиля пользователя
-                user?.let {
-                    updateDailyGoalsFromProfile(it)
-                }
-
-                // Получаем начало дня в миллисекундах для выбранной даты
-                val calendar = Calendar.getInstance().apply {
-                    time = date
-                    set(Calendar.HOUR_OF_DAY, 0)
-                    set(Calendar.MINUTE, 0)
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
-                }
-                val dateInMillis = calendar.timeInMillis
-
-                // Получаем сводки по каждому типу приема пищи для выбранной даты
-                val mealSummaries = withContext(Dispatchers.IO) {
-                    mealTypes.mapNotNull { mealType ->
-                        db.getMealSummaryByTypeAndDate(userId, mealType, dateInMillis)
-                    }
-                }
-
-                // Создаем список для отображения
-                val displayMeals = mutableListOf<DisplayMeal>()
-
-                // Сбрасываем дневные итоги
+                // 5. СБРОС СУММ
                 dailyTotalCalories = 0
                 dailyTotalProtein = 0
                 dailyTotalFat = 0
                 dailyTotalCarbs = 0
 
-                // Для каждого типа приема пищи создаем элемент отображения
-                mealTypes.forEach { mealType ->
-                    val summary = mealSummaries.firstOrNull {
-                        it.mealType.equals(mealType, ignoreCase = true)
-                    }
+                // 6. ФОРМИРУЕМ UI
+                val displayMeals = mealTypes.map { type ->
 
-                    if (summary != null) {
-                        // Если есть данные, добавляем их к итогам
-                        dailyTotalCalories += summary.totalCalories
-                        dailyTotalProtein += summary.totalProtein
-                        dailyTotalFat += summary.totalFat
-                        dailyTotalCarbs += summary.totalCarbs
+                    val items = grouped[type] ?: emptyList()
 
-                        displayMeals.add(
-                            DisplayMeal(
-                                mealType = mealType,
-                                productCount = summary.productCount,
-                                totalCalories = summary.totalCalories,
-                                description = "${summary.productCount} ${getProductCountText(summary.productCount)}",
-                                isExpanded = mealsAdapter.isMealExpanded(mealType)
-                            )
-                        )
-                    } else {
-                        // Если данных нет, создаем пустой прием пищи
-                        displayMeals.add(
-                            DisplayMeal(
-                                mealType = mealType,
-                                productCount = 0,
-                                totalCalories = 0,
-                                description = "Нет добавленных продуктов",
-                                isExpanded = mealsAdapter.isMealExpanded(mealType)
-                            )
-                        )
-                    }
+                    val calories = items.sumOf { it.calories.toInt() }
+                    val protein = items.sumOf { it.protein.toInt() }
+                    val fat = items.sumOf { it.fat.toInt() }
+                    val carbs = items.sumOf { it.carbs.toInt() }
+
+                    dailyTotalCalories += calories
+                    dailyTotalProtein += protein
+                    dailyTotalFat += fat
+                    dailyTotalCarbs += carbs
+
+                    DisplayMeal(
+                        mealType = type,
+                        productCount = items.size,
+                        totalCalories = calories,
+                        description = if (items.isEmpty())
+                            "Нет добавленных продуктов"
+                        else
+                            "${items.size} ${getProductCountText(items.size)}",
+                        isExpanded = mealsAdapter.isMealExpanded(type)
+                    )
                 }
 
-                // Обновляем UI на главном потоке
+                // 7. ОБНОВЛЕНИЕ UI
                 withContext(Dispatchers.Main) {
                     if (isAdded) {
                         mealsAdapter.updateData(displayMeals)
@@ -308,21 +319,16 @@ class NutritionFragment : Fragment() {
                 }
 
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("NutritionFragment", "loadMealsForDateAsync error", e)
+
                 withContext(Dispatchers.Main) {
                     if (isAdded) {
-                        // В случае ошибки показываем пустые данные
-                        val emptyMeals = mealTypes.map { mealType ->
-                            DisplayMeal(mealType, 0, 0, "Ошибка загрузки", false)
-                        }
-                        mealsAdapter.updateData(emptyMeals)
+                        mealsAdapter.updateData(
+                            mealTypes.map {
+                                DisplayMeal(it, 0, 0, "Ошибка загрузки", false)
+                            }
+                        )
                         resetDailySummary()
-
-                        Toast.makeText(
-                            requireContext(),
-                            "Ошибка загрузки данных: ${e.message}",
-                            Toast.LENGTH_SHORT
-                        ).show()
                     }
                 }
             }
@@ -336,7 +342,16 @@ class NutritionFragment : Fragment() {
            else -> "продуктов"
        }
     }
-
+    private fun normalizeDate(date: Date): Long {
+        val cal = Calendar.getInstance().apply {
+            time = date
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        return cal.timeInMillis
+    }
     private fun setupRecyclerView() {
         mealsRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         mealsRecyclerView.setHasFixedSize(true)
@@ -386,7 +401,7 @@ class NutritionFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val prefs = requireContext().getSharedPreferences("session", Context.MODE_PRIVATE)
-                val userId = prefs.getLong("user_id", -1L)
+                val userId = prefs.getLong("server_user_id", -1L)
                 if (userId == -1L) return@launch
 
                 val db = App.instance.db
@@ -462,7 +477,7 @@ class NutritionFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val prefs = requireContext().getSharedPreferences("session", Context.MODE_PRIVATE)
-                val userId = prefs.getLong("user_id", -1L)
+                val userId = prefs.getLong("server_user_id", -1L)
                 if (userId == -1L) return@launch
 
                 val db = App.instance.db
@@ -505,7 +520,7 @@ class NutritionFragment : Fragment() {
         loadMealsJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val prefs = requireContext().getSharedPreferences("session", Context.MODE_PRIVATE)
-                val userId = prefs.getLong("user_id", -1L)
+                val userId = prefs.getLong("server_user_id", -1L)
                 if (userId == -1L) return@launch
 
                 val db = App.instance.db
@@ -617,57 +632,130 @@ class NutritionFragment : Fragment() {
     }
 
     private fun loadMealProductsAsync(mealType: String) {
+
         loadMealProductsJob?.cancel()
 
         loadMealProductsJob = viewLifecycleOwner.lifecycleScope.launch {
+
             try {
-                val prefs = requireContext().getSharedPreferences("session", Context.MODE_PRIVATE)
-                val userId = prefs.getLong("user_id", -1L)
+
+                val prefs = requireContext()
+                    .getSharedPreferences("session", Context.MODE_PRIVATE)
+
+                val userId = prefs.getLong("server_user_id", -1L)
+
                 if (userId == -1L) return@launch
 
-                // Получаем начало дня для выбранной даты
-                val calendar = Calendar.getInstance().apply {
-                    time = selectedDate
-                    set(Calendar.HOUR_OF_DAY, 0)
-                    set(Calendar.MINUTE, 0)
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
+                val start = normalizeDate(selectedDate)
+                val end = start + 86_400_000
+
+                val meals = withContext(Dispatchers.IO) {
+                    ApiManager.getMeals(userId, start, end)
                 }
-                val dateInMillis = calendar.timeInMillis
 
-                val db = App.instance.db
+                Log.d("MEAL_DEBUG", "CLICKED TYPE = $mealType")
+                Log.d("MEAL_DEBUG", "SERVER SIZE = ${meals.size}")
 
-                val mealProducts = withContext(Dispatchers.IO) {
-                    try {
-                        db.getMealProductsByTypeAndDate(userId, mealType, dateInMillis)
-                    } catch (e: Exception) {
-                        Log.e("NutritionFragment", "Ошибка загрузки продуктов: ${e.message}")
-                        emptyList()
+                meals.forEach {
+                    Log.d(
+                        "MEAL_DEBUG",
+                        "mealType=${it.mealType} product=${it.productName}"
+                    )
+                }
+
+                val normalizedClickedType = when (mealType.trim().lowercase()) {
+                    "завтрак" -> listOf("завтрак", "breakfast")
+                    "обед" -> listOf("обед", "lunch")
+                    "ужин" -> listOf("ужин", "dinner")
+                    "перекус" -> listOf("перекус", "snack")
+                    else -> listOf(mealType.trim().lowercase())
+                }
+
+                val filtered = meals.filter {
+
+                    val serverType = it.mealType
+                        ?.trim()
+                        ?.lowercase()
+
+                    serverType in normalizedClickedType
+                }
+
+                Log.d("MEAL_DEBUG", "FILTERED = ${filtered.size}")
+
+                val products = filtered.mapNotNull {
+
+                    if (it.productName.isNullOrBlank()) {
+                        null
+                    } else {
+
+                        MealProductDisplay(
+                            mealItemId = it.id,
+                            productId = it.productId,
+                            productName = it.productName,
+                            quantity = it.quantity,
+
+                            calories = it.calories.toFloat(),
+                            protein = it.protein.toFloat(),
+                            fat = it.fat.toFloat(),
+                            carbs = it.carbs.toFloat()
+                        )
                     }
                 }
-
-                Log.d("NutritionFragment", "Загружено ${mealProducts.size} продуктов для $mealType на дату ${SimpleDateFormat("d.M.yyyy").format(selectedDate)}")
 
                 withContext(Dispatchers.Main) {
-                    if (isAdded) {
-                        mealsAdapter.updateMealProducts(mealType, mealProducts)
+
+                    if (!isAdded) return@withContext
+
+                    Log.d("MEAL_DEBUG", "FOUND PRODUCTS = ${products.size}")
+
+                    // 🔥 ГЛАВНОЕ ИСПРАВЛЕНИЕ
+                    mealsAdapter.updateMealProducts(
+                        mealType,
+                        products
+                    )
+
+                    // обновляем раскрытие
+                    mealsAdapter.notifyDataSetChanged()
+
+                    if (products.isEmpty()) {
+
+                        Toast.makeText(
+                            requireContext(),
+                            "Нет продуктов в $mealType",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 }
+
             } catch (e: Exception) {
-                e.printStackTrace()
-                withContext(Dispatchers.Main) {
-                    if (isAdded) {
-                        Toast.makeText(requireContext(), "Ошибка загрузки продуктов", Toast.LENGTH_SHORT).show()
-                    }
-                }
+
+                Log.e(
+                    "NutritionFragment",
+                    "loadMealProductsAsync error",
+                    e
+                )
             }
         }
+    }
+
+    private fun showMealProductsBottomSheet(
+        products: List<MealProductDisplay>,
+        mealType: String
+    ) {
+        // временно хотя бы лог/Toast
+        Log.d("NutritionFragment", "SHOW UI FOR $mealType -> ${products.size}")
+
+        Toast.makeText(
+            requireContext(),
+            "$mealType: ${products.size} продуктов",
+            Toast.LENGTH_SHORT
+        ).show()
     }
 
     private fun updateDailySummary() {
         calorieProgressBar.max = dailyGoal
         calorieProgressBar.progress = dailyTotalCalories.coerceAtMost(dailyGoal)
-        caloriesConsumedTextView.text = "Съедено: $dailyTotalCalories ккал"
+        caloriesConsumedTextView.text = " $dailyTotalCalories"
         caloriesRemainingTextView.text = "Осталось: ${(dailyGoal - dailyTotalCalories).coerceAtLeast(0)} ккал"
         totalProteinTextView.text = "$dailyTotalProtein / $dailyProteinGoal г"
         totalFatTextView.text = "$dailyTotalFat / $dailyFatGoal г"
@@ -738,7 +826,7 @@ class NutritionFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val prefs = requireContext().getSharedPreferences("session", Context.MODE_PRIVATE)
-                val userId = prefs.getLong("user_id", -1L)
+                val userId = prefs.getLong("server_user_id", -1L)
                 if (userId == -1L) return@launch
 
                 val db = App.instance.db

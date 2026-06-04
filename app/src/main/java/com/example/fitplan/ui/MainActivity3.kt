@@ -40,15 +40,14 @@ class MainActivity3 : AppCompatActivity() {
         bottomPanel = findViewById(R.id.bottom_navigation)
         setupPanelClicks()
 
-        bottomPanel.visibility = View.GONE
+        // 🔥 НЕ СКРЫВАЕМ ПАНЕЛЬ ЗДЕСЬ
+        // bottomPanel.visibility = View.GONE  // ← УБЕРИ ЭТУ СТРОКУ
 
         if (savedInstanceState == null) {
-
             checkAuthAndOpenFragment()
 
             CoroutineScope(Dispatchers.IO).launch {
                 SyncManager.syncAll(this@MainActivity3)
-
                 withContext(Dispatchers.Main) {
                     forceRefreshUser()
                 }
@@ -67,6 +66,16 @@ class MainActivity3 : AppCompatActivity() {
                 handler.post { callback(null) }
             }
         }
+    }
+
+    fun saveServerUserId(serverUserId: Long) {
+        sharedPref.edit().putLong("server_user_id", serverUserId).apply()
+        Log.d("WORKOUT_SYNC", "Saved server_user_id: $serverUserId")
+    }
+
+    // Получаем server_user_id
+    fun getServerUserId(): Long {
+        return sharedPref.getLong("server_user_id", -1L)
     }
     // 🔥 ГЛАВНОЕ ОБНОВЛЕНИЕ ЮЗЕРА
     fun forceRefreshUser() {
@@ -111,18 +120,17 @@ class MainActivity3 : AppCompatActivity() {
             return
         }
 
-        bottomPanel.visibility = View.VISIBLE
+        // НЕ ПОКАЗЫВАЕМ ПАНЕЛЬ СРАЗУ - ЖДЕМ ЗАГРУЗКИ ПОЛЬЗОВАТЕЛЯ
+        // bottomPanel.visibility = View.VISIBLE  // ← УБЕРИ ЭТУ СТРОКУ ОТСЮДА
 
-        // Загружаем пользователя с сервера по email
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val users = ApiManager.getUsers()
                 val serverUser = users?.find { it.email == email }
 
                 if (serverUser != null) {
-                    // ВАЖНО: используем serverUser.id как локальный ID
                     val localUser = User(
-                        id = serverUser.id,  // ← server_id, его и используем для обновления!
+                        id = serverUser.id,
                         name = serverUser.name,
                         email = serverUser.email,
                         password = serverUser.password ?: "",
@@ -139,11 +147,20 @@ class MainActivity3 : AppCompatActivity() {
                         dailyCarbsGoal = serverUser.dailyCarbsGoal
                     )
 
+                    saveServerUserId(serverUser.id)
+
                     withContext(Dispatchers.Main) {
                         currentUser = localUser
                         isUserLoaded = true
+
+                        // 🔥 ПОКАЗЫВАЕМ ПАНЕЛЬ ТОЛЬКО ПОСЛЕ ЗАГРУЗКИ ПОЛЬЗОВАТЕЛЯ
+                        bottomPanel.visibility = View.VISIBLE
+
                         openTab("food")
                     }
+
+                    syncWorkoutsFromServer()
+
                 } else {
                     withContext(Dispatchers.Main) {
                         Log.e("AUTH", "User not found on server")
@@ -155,6 +172,49 @@ class MainActivity3 : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     openLogin()
                 }
+            }
+        }
+    }
+
+    fun syncWorkoutsFromServer() {
+        val serverUserId = getServerUserId()
+        if (serverUserId == -1L) {
+            Log.e("WORKOUT_SYNC", "No server_user_id")
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val db = DatabaseHelper(this@MainActivity3)
+                val serverWorkouts = ApiManager.getWorkouts(serverUserId)
+                val localWorkouts = db.getWorkoutsByUser(serverUserId)
+
+                if (serverWorkouts != null) {
+                    // Сохраняем или обновляем тренировки с сервера
+                    serverWorkouts.forEach { workout ->
+                        val existing = db.getWorkoutByServerId(workout.id)
+                        if (existing == null) {
+                            db.insertWorkoutFromServer(serverUserId, workout.name, workout.id)
+                        }
+                    }
+
+                    // Удаляем локальные, которых нет на сервере
+                    val serverIds = serverWorkouts.map { it.id }.toSet()
+                    localWorkouts.forEach { local ->
+                        if (local.serverId != null && local.serverId !in serverIds) {
+                            db.deleteWorkout(local.id)
+                        }
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        val fragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
+                        if (fragment is WorkoutFragment) {
+                            fragment.refreshWorkouts()
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("WORKOUT_SYNC", "Error", e)
             }
         }
     }
@@ -191,6 +251,9 @@ class MainActivity3 : AppCompatActivity() {
                         if (fragment is ProfileFragment) {
                             fragment.refreshUserData()
                         }
+                        if (fragment is WorkoutFragment) {
+                            fragment.refreshWorkouts()
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -203,6 +266,22 @@ class MainActivity3 : AppCompatActivity() {
     fun onLoginSuccess(email: String) {
         bottomPanel.visibility = View.VISIBLE
         retryLoadUser(email, 10)
+
+        // 🔥 ДОБАВЬ ЭТОТ БЛОК
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val users = ApiManager.getUsers()
+                val serverUser = users?.find { it.email == email }
+                if (serverUser != null) {
+                    withContext(Dispatchers.Main) {
+                        saveServerUserId(serverUser.id)
+                        Log.d("WORKOUT_SYNC", "Saved server_user_id on login: ${serverUser.id}")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("WORKOUT_SYNC", "Error getting server_user_id", e)
+            }
+        }
     }
 
     private fun retryLoadUser(email: String, attempts: Int) {
@@ -210,6 +289,10 @@ class MainActivity3 : AppCompatActivity() {
             if (user != null) {
                 currentUser = user
                 isUserLoaded = true
+
+                // 🔥 ПОКАЗЫВАЕМ ПАНЕЛЬ ПОСЛЕ УСПЕШНОЙ ЗАГРУЗКИ
+                bottomPanel.visibility = View.VISIBLE
+
                 openTab("food")
             } else if (attempts > 0) {
                 handler.postDelayed({
@@ -313,8 +396,7 @@ class MainActivity3 : AppCompatActivity() {
         isUserLoaded = false
 
         handler.post {
-            bottomPanel.visibility = View.GONE
-
+            bottomPanel.visibility = View.GONE  // ← СКРЫВАЕМ НА ЭКРАНЕ ЛОГИНА
             supportFragmentManager.commit {
                 replace(R.id.fragment_container, Login())
             }

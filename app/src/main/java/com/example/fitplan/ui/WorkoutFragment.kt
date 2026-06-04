@@ -14,6 +14,8 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.example.fitplan.DataBase.DatabaseHelper
+import com.example.fitplan.Models.Api.ApiManager
+import com.example.fitplan.Models.Api.SyncManager
 import com.example.fitplan.Models.Exercise
 import com.example.fitplan.Models.Workout
 import com.example.fitplan.ui.login.Login
@@ -34,7 +36,7 @@ class WorkoutFragment : Fragment(), CoroutineScope {
     private lateinit var btnRefresh: Button
     private val expandedWorkouts = mutableSetOf<Long>()
     private val workoutContainers = mutableMapOf<Long, View>()
-
+    private var isLoading = false
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         db = DatabaseHelper(requireContext())
@@ -88,6 +90,7 @@ class WorkoutFragment : Fragment(), CoroutineScope {
 
     override fun onResume() {
         super.onResume()
+        SyncManager.startSync(requireContext())
         loadWorkouts()
     }
 
@@ -95,30 +98,43 @@ class WorkoutFragment : Fragment(), CoroutineScope {
         super.onDestroy()
         job.cancel()
     }
+    fun refreshWorkouts() {
+        expandedWorkouts.clear()
+        workoutContainers.clear()
+        loadWorkouts()
+    }
 
     private fun loadWorkouts() {
-        if (userId == -1L) return
+        if (userId == -1L || isLoading) return
+
+        isLoading = true
 
         launch {
             try {
+                // 🔥 УБИРАЕМ ЗАПРОС К СЕРВЕРУ - ОН ТУТ НЕ НУЖЕН!
+                // Просто загружаем из локальной БД
+
                 val workouts = withContext(Dispatchers.IO) {
-                    db.getWorkoutsByUser(userId)
+                    db.getWorkoutsByUser(userId)  // локальный userId
                 }
 
-                // Очищаем UI
-                containerWorkouts.removeAllViews()
-                workoutContainers.clear()
+                withContext(Dispatchers.Main) {
+                    containerWorkouts.removeAllViews()
+                    workoutContainers.clear()
+                    expandedWorkouts.clear()
 
-                if (workouts.isEmpty()) {
-                    emptyStateCard.visibility = View.VISIBLE
-                } else {
-                    emptyStateCard.visibility = View.GONE
-                    workouts.forEach { addWorkoutCard(it) }
+                    if (workouts.isEmpty()) {
+                        emptyStateCard.visibility = View.VISIBLE
+                    } else {
+                        emptyStateCard.visibility = View.GONE
+                        workouts.distinctBy { it.id }.forEach { addWorkoutCard(it) }
+                    }
                 }
+
             } catch (e: Exception) {
-                Log.e("WORKOUT_CRASH", "Ошибка загрузки тренировок", e)
-                emptyStateCard.visibility = View.VISIBLE
-                Toast.makeText(requireContext(), "Ошибка загрузки тренировок", Toast.LENGTH_SHORT).show()
+                Log.e("WORKOUT", "load error", e)
+            } finally {
+                isLoading = false
             }
         }
     }

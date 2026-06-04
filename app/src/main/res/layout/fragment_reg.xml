@@ -1,416 +1,279 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background_primary"
-    android:fadeScrollbars="false"
-    android:padding="24dp">
+    android:padding="18dp"
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingBottom="40dp">
+        android:orientation="vertical">
 
+        <!-- HEADER -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="40dp"
-            android:text="Регистрация"
-            android:textColor="@color/text_primary"
-            android:textSize="28sp"
+            android:text="Создание аккаунта"
+            android:textSize="32sp"
             android:textStyle="bold"
-            tools:ignore="HardcodedText" />
+            android:textColor="@color/text_primary"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="24dp"/>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="32dp"
-            android:text="Создайте свой фитнес-профиль"
-            android:textColor="@color/text_secondary"
+            android:text="Начни свой фитнес путь"
             android:textSize="14sp"
-            tools:ignore="HardcodedText" />
+            android:textColor="@color/text_secondary"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="18dp"/>
 
+        <!-- CARD -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/background_secondary"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="4dp"
+            app:cardCornerRadius="28dp"
+            app:cardElevation="10dp"
             app:cardUseCompatPadding="true"
-            android:layout_marginHorizontal="8dp">
+            app:cardBackgroundColor="@color/background_secondary"
+            android:layout_margin="6dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="22dp">
 
+                <!-- EMAIL -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Email"
                     android:textColor="@color/text_secondary"
-                    android:textSize="14sp"
-                    android:layout_marginBottom="8dp" />
+                    android:layout_marginBottom="6dp"/>
 
                 <EditText
                     android:id="@+id/emailEditText"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
-                    android:background="@color/background_tertiary"
+                    android:background="@drawable/rounded_input"
+                    android:padding="14dp"
                     android:gravity="center_vertical"
-                    android:hint="Введите ваш email"
-
+                    android:hint="example@mail.com"
                     android:textColor="@color/text_primary"
                     android:inputType="textEmailAddress"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:imeOptions="actionNext"
-                    android:importantForAutofill="yes"
-                    android:layout_marginBottom="20dp" />
+                    android:layout_marginBottom="14dp"
+                    android:minHeight="56dp"/>
 
+                <!-- PASSWORD -->
+                <!-- PASSWORD -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Пароль"
                     android:textColor="@color/text_secondary"
-                    android:textSize="14sp"
-                    android:layout_marginBottom="8dp" />
+                    android:layout_marginBottom="6dp"/>
 
                 <RelativeLayout
                     android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:layout_marginBottom="20dp">
+                    android:layout_height="56dp">
 
                     <EditText
                         android:id="@+id/passwordEditText"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:background="@color/background_tertiary"
+                        android:background="@drawable/rounded_input"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="50dp"
                         android:gravity="center_vertical"
-                        android:hint="Введите пароль"
-
-                        android:textColor="@color/text_primary"
+                        android:hint="••••••••"
                         android:inputType="textPassword"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="48dp"
-                        android:imeOptions="actionNext" />
+                        android:textColor="@color/text_primary"
+                        android:minHeight="56dp"/>
 
                     <TextView
                         android:id="@+id/passwordToggle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="👁️"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="18sp"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
                         android:layout_alignParentEnd="true"
                         android:layout_centerVertical="true"
-                        android:layout_marginEnd="16dp"
-                        android:padding="8dp"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:minHeight="48dp"
-                        android:minWidth="48dp" />
+                        android:layout_marginEnd="8dp"
+                        android:gravity="center"
+                        android:text="👁️"
+                        android:textSize="18sp"/>
                 </RelativeLayout>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Подтвердите пароль"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="14sp"
-                    android:layout_marginBottom="8dp" />
 
                 <EditText
                     android:id="@+id/confirmPasswordEditText"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
-                    android:background="@color/background_tertiary"
+                    android:background="@drawable/rounded_input"
+                    android:padding="14dp"
                     android:gravity="center_vertical"
-                    android:hint="Повторите пароль"
-
-                    android:textColor="@color/text_primary"
+                    android:hint="Повтори пароль"
                     android:inputType="textPassword"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:imeOptions="actionNext"
-                    android:layout_marginBottom="24dp" />
+                    android:layout_marginTop="10dp"
+                    android:textColor="@color/text_primary"
+                    android:minHeight="56dp"/>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Имя"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="14sp"
-                    android:layout_marginBottom="8dp" />
-
+                <!-- NAME -->
                 <EditText
                     android:id="@+id/nameEditText"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
-                    android:background="@color/background_tertiary"
+                    android:background="@drawable/rounded_input"
+                    android:padding="14dp"
                     android:gravity="center_vertical"
-                    android:hint="Введите ваше имя"
-
+                    android:hint="Твоё имя"
+                    android:layout_marginTop="10dp"
                     android:textColor="@color/text_primary"
-                    android:inputType="textPersonName"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:imeOptions="actionNext"
-                    android:layout_marginBottom="24dp" />
+                    android:minHeight="56dp"/>
 
+                <!-- AGE + HEIGHT -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginBottom="24dp">
+                    android:layout_marginTop="12dp">
 
-                    <LinearLayout
+                    <EditText
+                        android:id="@+id/ageEditText"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginEnd="8dp">
+                        android:layout_height="56dp"
+                        android:background="@drawable/rounded_input"
+                        android:gravity="center_vertical"
+                        android:hint="Возраст"
+                        android:padding="12dp"
+                        android:inputType="number"
+                        android:minHeight="56dp"/>
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Возраст"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="14sp"
-                            android:layout_marginBottom="8dp" />
-
-                        <EditText
-                            android:id="@+id/ageEditText"
-                            android:layout_width="match_parent"
-                            android:layout_height="56dp"
-                            android:background="@color/background_tertiary"
-                            android:gravity="center_vertical"
-                            android:hint="Лет"
-
-                            android:textColor="@color/text_primary"
-                            android:inputType="number"
-                            android:paddingStart="16dp"
-                            android:paddingEnd="16dp"
-                            android:imeOptions="actionNext" />
-                    </LinearLayout>
-
-                    <LinearLayout
+                    <EditText
+                        android:id="@+id/heightEditText"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginStart="8dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Рост (см)"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="14sp"
-                            android:layout_marginBottom="8dp" />
-
-                        <EditText
-                            android:id="@+id/heightEditText"
-                            android:layout_width="match_parent"
-                            android:layout_height="56dp"
-                            android:background="@color/background_tertiary"
-                            android:gravity="center_vertical"
-                            android:hint="См"
-
-                            android:textColor="@color/text_primary"
-                            android:inputType="number"
-                            android:paddingStart="16dp"
-                            android:paddingEnd="16dp"
-                            android:imeOptions="actionNext" />
-                    </LinearLayout>
+                        android:layout_height="56dp"
+                        android:layout_marginStart="10dp"
+                        android:background="@drawable/rounded_input"
+                        android:gravity="center_vertical"
+                        android:hint="Рост"
+                        android:padding="12dp"
+                        android:inputType="number"
+                        android:minHeight="56dp"/>
                 </LinearLayout>
 
+                <!-- WEIGHT -->
                 <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp">
+
+                    <EditText
+                        android:id="@+id/currentWeightEditText"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="56dp"
+                        android:background="@drawable/rounded_input"
+                        android:gravity="center_vertical"
+                        android:hint="Вес"
+                        android:padding="12dp"
+                        android:inputType="numberDecimal"
+                        android:minHeight="56dp"/>
+
+                    <EditText
+                        android:id="@+id/targetWeightEditText"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="56dp"
+                        android:layout_marginStart="10dp"
+                        android:background="@drawable/rounded_input"
+                        android:gravity="center_vertical"
+                        android:hint="Цель"
+                        android:padding="12dp"
+                        android:inputType="numberDecimal"
+                        android:minHeight="56dp"/>
+                </LinearLayout>
+
+                <!-- SPINNERS -->
+                <Spinner
+                    android:id="@+id/activityLevelSpinner"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="12dp"
+                    android:padding="10dp"
+                    android:background="@drawable/rounded_input"/>
+
+                <Spinner
+                    android:id="@+id/goalSpinner"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="10dp"
+                    android:padding="10dp"
+                    android:background="@drawable/rounded_input"/>
+
+                <!-- GENDER -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Пол"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="14dp"/>
+
+                <RadioGroup
+                    android:id="@+id/genderRadioGroup"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginBottom="24dp">
+                    android:layout_marginTop="6dp">
 
-                    <LinearLayout
+                    <RadioButton
+                        android:id="@+id/maleRadioButton"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginEnd="8dp">
+                        android:text="Мужской"
+                        android:gravity="center"/>
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Текущий вес"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="14sp"
-                            android:layout_marginBottom="8dp" />
-
-                        <EditText
-                            android:id="@+id/currentWeightEditText"
-                            android:layout_width="match_parent"
-                            android:layout_height="56dp"
-                            android:background="@color/background_tertiary"
-                            android:gravity="center_vertical"
-                            android:hint="Кг"
-
-                            android:textColor="@color/text_primary"
-                            android:inputType="numberDecimal"
-                            android:paddingStart="16dp"
-                            android:paddingEnd="16dp"
-                            android:imeOptions="actionNext" />
-                    </LinearLayout>
-
-                    <LinearLayout
+                    <RadioButton
+                        android:id="@+id/femaleRadioButton"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginStart="8dp">
+                        android:text="Женский"
+                        android:gravity="center"/>
+                </RadioGroup>
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Желаемый вес"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="14sp"
-                            android:layout_marginBottom="8dp" />
-
-                        <EditText
-                            android:id="@+id/targetWeightEditText"
-                            android:layout_width="match_parent"
-                            android:layout_height="56dp"
-                            android:background="@color/background_tertiary"
-                            android:gravity="center_vertical"
-                            android:hint="Кг"
-
-                            android:textColor="@color/text_primary"
-                            android:inputType="numberDecimal"
-                            android:paddingStart="16dp"
-                            android:paddingEnd="16dp"
-                            android:imeOptions="actionNext" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_marginBottom="24dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Уровень активности"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="14sp"
-                        android:layout_marginBottom="8dp" />
-
-                    <Spinner
-                        android:id="@+id/activityLevelSpinner"
-                        android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:background="@color/background_tertiary"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_marginBottom="24dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Пол"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="14sp"
-                        android:layout_marginBottom="8dp" />
-
-                    <RadioGroup
-                        android:id="@+id/genderRadioGroup"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal">
-
-                        <RadioButton
-                            android:id="@+id/maleRadioButton"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Мужской"
-                            android:textColor="@color/text_primary"
-                            android:buttonTint="@color/primary" />
-
-                        <RadioButton
-                            android:id="@+id/femaleRadioButton"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Женский"
-                            android:textColor="@color/text_primary"
-                            android:buttonTint="@color/primary" />
-                    </RadioGroup>
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_marginBottom="32dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Цель"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="14sp"
-                        android:layout_marginBottom="8dp" />
-
-                    <Spinner
-                        android:id="@+id/goalSpinner"
-                        android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:background="@color/background_tertiary"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp" />
-                </LinearLayout>
 
                 <Button
                     android:id="@+id/registerButton"
                     android:layout_width="match_parent"
-                    android:layout_height="64dp"
-                    android:background="@color/primary"
+                    android:layout_height="60dp"
+                    android:layout_marginTop="28dp"
+                    android:background="@drawable/bg_button_primary"
                     android:text="ЗАРЕГИСТРИРОВАТЬСЯ"
-                    android:textColor="@color/button_primary_text"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white"
                     android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.05"
-                    android:layout_marginBottom="24dp" />
+                    android:textStyle="bold" />
 
+                <!-- LOGIN -->
                 <TextView
                     android:id="@+id/loginTextView"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
                     android:text="Уже есть аккаунт? Войти"
                     android:textColor="@color/primary"
-                    android:textSize="14sp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:padding="8dp" />
+                    android:layout_gravity="center"
+                    android:padding="14dp"/>
 
             </LinearLayout>
+
         </androidx.cardview.widget.CardView>
 
     </LinearLayout>
+
 </ScrollView>

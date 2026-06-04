@@ -20,89 +20,76 @@ object ApiManager {
     suspend fun searchProducts(query: String): List<Product> {
 
         val queryLower = query.trim().lowercase()
+
         if (queryLower.length < 2) return emptyList()
 
-        searchCache[queryLower]?.let { return it }
-
-        for (i in queryLower.length downTo 2) {
-            val prefix = queryLower.substring(0, i)
-            prefixCache[prefix]?.let { cached ->
-                val filtered = cached.filter {
-                    it.name.lowercase().contains(queryLower)
-                }
-                if (filtered.isNotEmpty()) return filtered
-            }
+        // ✅ CACHE CHECK
+        searchCache[queryLower]?.let {
+            Log.d("FOOD_SEARCH", "CACHE HIT = $queryLower")
+            return it
         }
 
         return try {
 
-            val response = withTimeoutOrNull(2000) {
-                foodApi.searchProducts(
-                    query = query,
-                    simple = 1,
-                    action = "process",
-                    json = 1,
-                    pageSize = 15
-                )
-            } ?: return emptyList()
+            val response = foodApi.searchProducts(
+                query = queryLower,
+                simple = 1,
+                action = "process",
+                json = 1,
+                pageSize = 15
+            )
 
-            val products = convertProducts(response.products)
+            val converted = convertProducts(response.products)
 
-            if (products.isNotEmpty()) {
+            // ✅ SAVE TO CACHE
+            searchCache[queryLower] = converted
 
-                searchCache[queryLower] = products
-
-                for (i in 2..queryLower.length) {
-                    val prefix = queryLower.substring(0, i)
-                    val filtered = products.filter {
-                        it.name.lowercase().contains(prefix)
-                    }
-                    if (filtered.isNotEmpty()) {
-                        prefixCache[prefix] = filtered
-                    }
-                }
-
-                products.forEach {
-                    productCache[it.name.lowercase()] = it
-                }
-
-                if (searchCache.size > 50) {
-                    searchCache.keys.firstOrNull()?.let { searchCache.remove(it) }
-                }
-
-                if (prefixCache.size > 100) {
-                    prefixCache.keys.firstOrNull()?.let { prefixCache.remove(it) }
-                }
-            }
-
-            products
+            converted
 
         } catch (e: Exception) {
-            Log.e("ApiManager", "searchProducts error", e)
+            Log.e("FOOD_SEARCH", "ERROR", e)
             emptyList()
         }
     }
-
+    fun getCachedSearch(query: String): List<Product>? {
+        return searchCache[query.trim().lowercase()]
+    }
     private fun convertProducts(apiProducts: List<ApiProduct>): List<Product> {
+
+        Log.d("API", "RAW PRODUCTS = ${apiProducts.size}")
+
         return apiProducts.mapNotNull {
+
             try {
-                val name = it.productName?.trim() ?: return@mapNotNull null
-                val nutriments = it.nutriments ?: return@mapNotNull null
+
+                val name = it.productName?.trim()
+
+                if (name.isNullOrBlank()) {
+                    return@mapNotNull null
+                }
+
+                val nutriments = it.nutriments
 
                 Product(
                     id = 0,
-                    name = name.take(50),
-                    calories = nutriments.energyKcal100g ?: 0f,
-                    protein = nutriments.proteins ?: 0f,
-                    fat = nutriments.fat ?: 0f,
-                    carbs = nutriments.carbohydrates ?: 0f,
+                    name = name.take(60),
+
+                    calories = nutriments?.energyKcal100g ?: 0f,
+                    protein = nutriments?.proteins ?: 0f,
+                    fat = nutriments?.fat ?: 0f,
+                    carbs = nutriments?.carbohydrates ?: 0f,
+
                     brand = it.brands ?: "",
                     barcode = it.code ?: ""
                 )
+
             } catch (e: Exception) {
+
+                Log.e("API", "convert error", e)
                 null
             }
-        }.distinctBy { it.name }
+
+        }.distinctBy { it.name.lowercase() }
     }
 
     fun getCachedProductByName(name: String): Product? {
@@ -173,6 +160,8 @@ object ApiManager {
         }
     }
 
+
+
     // В ApiManager.kt исправьте updateUser:
     suspend fun updateUser(userId: Long, user: UserDto): Boolean {
         return try {
@@ -238,66 +227,23 @@ object ApiManager {
         }
     }
 
-    // ================= SYNC USERS (FIXED) =================
 
-    suspend fun syncUsers(users: List<UserDto>): Boolean {
-        return try {
-            val response = serverApi.syncUsers(users)
-            response.isSuccessful
-        } catch (e: Exception) {
-            Log.e("ApiManager", "syncUsers error", e)
-            false
-        }
-    }
-
-    suspend fun syncLocalUsersToServer(db: DatabaseHelper) {
-        withContext(Dispatchers.IO) {
-            try {
-
-                val unsynced = db.getUnsyncedUsers()
-
-                for (user in unsynced) {
-
-                    val dto = UserDto(
-                        id = user.id,
-                        name = user.name,
-                        email = user.email,
-                        password = user.password,
-                        age = user.age,
-                        height = user.height,
-                        weight = user.weight,
-                        targetWeight = user.targetWeight,
-                        activity = user.activity,
-                        goal = user.goal,
-                        gender = user.gender,
-                        dailyCaloriesGoal = user.dailyCaloriesGoal,
-                        dailyProteinGoal = user.dailyProteinGoal,
-                        dailyFatGoal = user.dailyFatGoal,
-                        dailyCarbsGoal = user.dailyCarbsGoal
-                    )
-
-                    val success = addUser(dto)
-
-                    if (success) {
-                        db.markUserSynced(user.id)
-                    }
-                }
-
-            } catch (e: Exception) {
-                Log.e("Sync", "syncLocalUsersToServer error", e)
-            }
-        }
-    }
-
-    // ================= WORKOUTS =================
-
-    suspend fun addWorkout(workout: WorkoutDto): Boolean {
+    suspend fun addWorkout(workout: WorkoutDto): Long? {
         return try {
             val response = serverApi.addWorkout(workout)
-            response.isSuccessful && response.body()?.success == true
+
+            Log.d("API", "addWorkout code=${response.code()}")
+            Log.d("API", "addWorkout body=${response.body()}")
+
+            if (response.isSuccessful) {
+                // ВАЖНО: если id нет — верни -1 или null
+                return response.body()?.id ?: null
+            }
+
+            null
         } catch (e: Exception) {
             Log.e("ApiManager", "addWorkout error", e)
-            false
+            null
         }
     }
 
@@ -306,11 +252,9 @@ object ApiManager {
             val response = serverApi.getWorkouts(userId)
             if (response.isSuccessful) response.body() else null
         } catch (e: Exception) {
-            Log.e("ApiManager", "getWorkouts error", e)
             null
         }
     }
-
     // ================= MEALS =================
 
     suspend fun addMeal(meal: MealDto): Boolean {
@@ -323,17 +267,52 @@ object ApiManager {
         }
     }
 
-    suspend fun getMeals(userId: Long): List<MealDto>? {
+    suspend fun getMeals(userId: Long, start: Long, end: Long): List<MealDto> {
         return try {
-            val response = serverApi.getMeals(userId)
-            if (response.isSuccessful) response.body() else null
+
+            val response = serverApi.getMeals(userId, start, end)
+
+            Log.d("API_MEALS", "code=${response.code()}")
+            Log.d("API_MEALS", "body=${response.body()}")
+
+            response.body()?.forEach {
+                Log.d(
+                    "API_MEALS",
+                    "meal: id=${it.id}, type=${it.mealType}, date=${it.date}, userId=${it.userId}"
+                )
+            }
+
+            if (response.isSuccessful) {
+                response.body()?.map {
+                    it.copy(
+                        mealType = it.mealType ?: "Другое"
+                    )
+                } ?: emptyList()
+            } else {
+                emptyList()
+            }
+
         } catch (e: Exception) {
             Log.e("ApiManager", "getMeals error", e)
-            null
+            emptyList()
         }
     }
 
-    // ================= EXERCISES =================
+    suspend fun getExercises(workoutId: Long): List<WorkoutExerciseDto> {
+        return try {
+            val response = serverApi.getExercises(workoutId)
+
+            if (response.isSuccessful) {
+                response.body() ?: emptyList()
+            } else {
+                emptyList()
+            }
+
+        } catch (e: Exception) {
+            Log.e("ApiManager", "getExercises error", e)
+            emptyList()
+        }
+    }
 
     suspend fun addExercise(ex: WorkoutExerciseDto): Boolean {
         return try {
@@ -342,16 +321,6 @@ object ApiManager {
         } catch (e: Exception) {
             Log.e("ApiManager", "addExercise error", e)
             false
-        }
-    }
-
-    suspend fun getExercises(userId: Long): List<WorkoutExerciseDto>? {
-        return try {
-            val response = serverApi.getExercises(userId)
-            if (response.isSuccessful) response.body() else null
-        } catch (e: Exception) {
-            Log.e("ApiManager", "getExercises error", e)
-            null
         }
     }
 

@@ -405,7 +405,10 @@ class DatabaseHelper(context: Context) :
             }
         }
     }
-
+    fun deleteAllExercises() {
+        val db = this.writableDatabase
+        db.execSQL("DELETE FROM exercises")
+    }
     private fun queryMultiple(
         table: String,
         selection: String? = null,
@@ -538,6 +541,61 @@ class DatabaseHelper(context: Context) :
         }
     }
 
+    fun syncWorkouts(userId: Long, workouts: List<WorkoutDto>) {
+        val db = writableDatabase
+
+        for (w in workouts) {
+
+            val values = ContentValues().apply {
+                put("server_id", w.id)
+                put("user_id", userId)
+                put("name", w.name)
+            }
+
+            db.insertWithOnConflict(
+                "workouts",
+                null,
+                values,
+                SQLiteDatabase.CONFLICT_REPLACE
+            )
+        }
+    }
+
+    fun updateWorkoutServerId(localId: Long, serverId: Long) {
+        writableDatabase.update(
+            TABLE_WORKOUTS,
+            ContentValues().apply {
+                put("server_id", serverId)
+            },
+            "$COL_ID = ?",
+            arrayOf(localId.toString())
+        )
+    }
+
+    private fun syncExercisesForWorkout(localWorkoutId: Long, serverWorkoutId: Long) {
+        val exercises = getExercises(localWorkoutId)
+
+        exercises.forEach { ex ->
+            CoroutineScope(Dispatchers.IO).launch {
+
+                val success = ApiManager.addExercise(
+                    WorkoutExerciseDto(
+                        workoutId = serverWorkoutId,
+                        name = ex.name,
+                        sets = ex.sets,
+                        reps = ex.reps,
+                        weight = ex.weight,
+                        rest = ex.rest
+                    )
+                )
+
+                if (success) {
+                    markExerciseSynced(ex.id)
+                }
+            }
+        }
+    }
+
     // В DatabaseHelper.kt добавьте:
     fun getUserServerId(localUserId: Long): Long? {
         val cursor = readableDatabase.rawQuery(
@@ -556,15 +614,6 @@ class DatabaseHelper(context: Context) :
             "$COL_ID = ?",
             arrayOf(localUserId.toString())
         )
-    }
-
-    fun getUserByCredentials(email: String, password: String): User? {
-        return querySingle(
-            table = TABLE_USERS,
-            selection = "$COL_EMAIL = ? AND $COL_PASSWORD = ?",
-            selectionArgs = arrayOf(email, password)
-
-        )?.toUser()
     }
 
     fun getUserByEmailAndPassword(email: String, password: String): User? {
@@ -640,12 +689,11 @@ class DatabaseHelper(context: Context) :
             if (cursor.moveToFirst()) {
                 Workout(
                     id = cursor.getLong(cursor.getColumnIndexOrThrow(COL_ID)),
+                    serverId = cursor.getLongOrNull("server_id"),
                     userId = cursor.getLong(cursor.getColumnIndexOrThrow(COL_USER_ID)),
                     name = cursor.getString(cursor.getColumnIndexOrThrow(COL_NAME))
                 )
-            } else {
-                null
-            }
+            } else null
         }
     }
 
@@ -671,10 +719,14 @@ class DatabaseHelper(context: Context) :
         return workouts
     }
 
+
     fun addExerciseToWorkout(workoutId: Long, exercise: Exercise): Long {
-        var exerciseId = -1L
-        writableDatabase.use { db ->
-            exerciseId = db.insert(TABLE_EXERCISES, null, ContentValues().apply {
+        val db = writableDatabase
+
+        db.beginTransaction()
+        try {
+
+            val exerciseId = db.insert(TABLE_EXERCISES, null, ContentValues().apply {
                 put(COL_NAME, exercise.name)
             })
 
@@ -687,8 +739,13 @@ class DatabaseHelper(context: Context) :
                 put("rest", exercise.rest)
                 put("synced", 0)
             })
+
+            db.setTransactionSuccessful()
+            return exerciseId
+
+        } finally {
+            db.endTransaction()
         }
-        return exerciseId
     }
 
     fun getUnsyncedUsers(): List<User> {
@@ -726,24 +783,33 @@ class DatabaseHelper(context: Context) :
 
     fun getExercises(workoutId: Long): List<Exercise> {
         return readableDatabase.rawQuery("""
-            SELECT we.$COL_ID, e.$COL_NAME, we.sets, we.reps, we.weight, we.rest
-            FROM $TABLE_WORKOUT_EXERCISES we
-            JOIN $TABLE_EXERCISES e ON e.$COL_ID = we.exercise_id
-            WHERE we.workout_id = ?
-        """, arrayOf(workoutId.toString())).use { cursor ->
-            val exercises = mutableListOf<Exercise>()
+        SELECT 
+            e.exerciseid,
+            e.name,
+            we.sets,
+            we.reps,
+            we.weight,
+            we.rest
+        FROM workoutexercises we
+        JOIN exercises e ON e.exerciseid = we.exercise_id
+        WHERE we.workout_id = ?
+    """, arrayOf(workoutId.toString())).use { cursor ->
+
+            val list = mutableListOf<Exercise>()
+
             while (cursor.moveToNext()) {
-                exercises.add(Exercise(
-                    id = cursor.getLong(cursor.getColumnIndexOrThrow(COL_ID)),
-                    workoutId = workoutId,
-                    name = cursor.getString(cursor.getColumnIndexOrThrow(COL_NAME)),
-                    sets = cursor.getInt(cursor.getColumnIndexOrThrow("sets")),
-                    reps = cursor.getInt(cursor.getColumnIndexOrThrow("reps")),
-                    weight = cursor.getInt(cursor.getColumnIndexOrThrow("weight")),
-                    rest = cursor.getInt(cursor.getColumnIndexOrThrow("rest"))
-                ))
+                list.add(
+                    Exercise(
+                        id = cursor.getLong(cursor.getColumnIndexOrThrow("exerciseid")),
+                        name = cursor.getString(cursor.getColumnIndexOrThrow("name")),
+                        sets = cursor.getInt(cursor.getColumnIndexOrThrow("sets")),
+                        reps = cursor.getInt(cursor.getColumnIndexOrThrow("reps")),
+                        weight = cursor.getInt(cursor.getColumnIndexOrThrow("weight")),
+                        rest = cursor.getInt(cursor.getColumnIndexOrThrow("rest"))
+                    )
+                )
             }
-            exercises
+            list
         }
     }
 
@@ -794,32 +860,7 @@ class DatabaseHelper(context: Context) :
         })
     }
 
-    fun getUnsyncedWorkoutExercises(): List<Exercise> {
-        return readableDatabase.rawQuery("""
-        SELECT we._id, we.workout_id, e.name, we.sets, we.reps, we.weight, we.rest
-        FROM workout_exercises we
-        JOIN exercises e ON e._id = we.exercise_id
-        WHERE we.synced = 0
-    """, null).use { cursor ->
 
-            val list = mutableListOf<Exercise>()
-
-            while (cursor.moveToNext()) {
-                list.add(
-                    Exercise(
-                        id = cursor.getLong(0),
-                        workoutId = cursor.getLong(1),
-                        name = cursor.getString(2),
-                        sets = cursor.getInt(3),
-                        reps = cursor.getInt(4),
-                        weight = cursor.getInt(5),
-                        rest = cursor.getInt(6)
-                    )
-                )
-            }
-            list
-        }
-    }
     fun markExerciseSynced(id: Long) {
         writableDatabase.update(
             "workout_exercises",
@@ -1008,77 +1049,13 @@ class DatabaseHelper(context: Context) :
         })
 
         // Отправляем на сервер
-        val mealDto = MealDto(
-            id = 0,  // или не передавайте, если сделали id = 0 по умолчанию
-            userId = userId,
-            productId = productId,
-            quantity = quantity,
-            calories = calories.toInt(),
-            protein = protein.toInt(),
-            fat = fat.toInt(),
-            carbs = carbs.toInt(),
-            mealType = mealType,
-            date = System.currentTimeMillis()
-        )
-        val success = ApiManager.addMeal(mealDto)
-        if (!success) {
-            Log.e("DatabaseHelper", "Failed to sync meal to server, but saved locally")
-            // Здесь можно пометить запись как несинхронизированную (если добавите колонку synced)
-        }
+
+
+
         return@withContext id
     }
-    fun syncExercises() {
-        val exercises = getUnsyncedWorkoutExercises()
 
-        exercises.forEach { ex ->
-            CoroutineScope(Dispatchers.IO).launch {
-                val success = ApiManager.addExercise(
-                    WorkoutExerciseDto(
-                        workoutId = ex.workoutId,
-                        name = ex.name,
-                        sets = ex.sets,
-                        reps = ex.reps,
-                        weight = ex.weight,
-                        rest = ex.rest
-                    )
-                )
 
-                if (success) {
-                    markExerciseSynced(ex.id)
-                }
-            }
-        }
-    }
-
-    suspend fun getMealsByUserAndType(userId: Long, mealType: String): List<Meal> =
-        withContext(Dispatchers.IO) {
-            readableDatabase.rawQuery("""
-            SELECT nl.$COL_ID, p.$COL_NAME, nl.quantity, nl.calories, nl.protein, 
-                   nl.fat, nl.carbs, nl.date, nl.meal_type, nl.$COL_PRODUCT_ID
-            FROM $TABLE_NUTRITION_LOG nl
-            JOIN $TABLE_PRODUCTS p ON p.$COL_ID = nl.$COL_PRODUCT_ID
-            WHERE nl.$COL_USER_ID = ? AND nl.meal_type = ? COLLATE NOCASE
-            ORDER BY nl.date ASC
-        """, arrayOf(userId.toString(), mealType)).use { cursor ->
-                val meals = mutableListOf<Meal>()
-                while (cursor.moveToNext()) {
-                    meals.add(Meal(
-                        id = cursor.getLong(cursor.getColumnIndexOrThrow(COL_ID)),
-                        userId = userId,
-                        productId = cursor.getLong(cursor.getColumnIndexOrThrow(COL_PRODUCT_ID)),
-                        productName = cursor.getString(cursor.getColumnIndexOrThrow(COL_NAME)),
-                        quantity = cursor.getInt(cursor.getColumnIndexOrThrow("quantity")),
-                        calories = cursor.getDouble(cursor.getColumnIndexOrThrow("calories")).toInt(),
-                        protein = cursor.getDouble(cursor.getColumnIndexOrThrow("protein")).toInt(),
-                        fat = cursor.getDouble(cursor.getColumnIndexOrThrow("fat")).toInt(),
-                        carbs = cursor.getDouble(cursor.getColumnIndexOrThrow("carbs")).toInt(),
-                        date = cursor.getLong(cursor.getColumnIndexOrThrow("date")),
-                        mealType = cursor.getString(cursor.getColumnIndexOrThrow("meal_type"))
-                    ))
-                }
-                meals
-            }
-        }
     suspend fun getMealSummaryByTypeAndDate(userId: Long, mealType: String, date: Long): MealSummary? =
         withContext(Dispatchers.IO) {
             val startOfDay = getStartOfDay(date)
@@ -1119,16 +1096,7 @@ class DatabaseHelper(context: Context) :
                 }
             }
         }
-    fun userExists(id: Long): Boolean {
-        val db = readableDatabase
-        val cursor = db.rawQuery(
-            "SELECT _id FROM $TABLE_USERS WHERE _id = ?",
-            arrayOf(id.toString())
-        )
-        val exists = cursor.count > 0
-        cursor.close()
-        return exists
-    }
+
     suspend fun getMealProductsByTypeAndDate(userId: Long, mealType: String, date: Long): List<MealProductDisplay> =
         withContext(Dispatchers.IO) {
             val startOfDay = getStartOfDay(date)
@@ -1185,32 +1153,7 @@ class DatabaseHelper(context: Context) :
         return calendar.timeInMillis
     }
 
-    suspend fun getMealProductsByType(userId: Long, mealType: String): List<MealProductDisplay> =
-        withContext(Dispatchers.IO) {
-            readableDatabase.rawQuery("""
-                SELECT nl.$COL_ID, nl.$COL_PRODUCT_ID, p.$COL_NAME, nl.quantity, 
-                       nl.calories, nl.protein, nl.fat, nl.carbs
-                FROM $TABLE_NUTRITION_LOG nl
-                JOIN $TABLE_PRODUCTS p ON p.$COL_ID = nl.$COL_PRODUCT_ID
-                WHERE nl.$COL_USER_ID = ? AND nl.meal_type = ? COLLATE NOCASE
-                ORDER BY nl.date ASC
-            """, arrayOf(userId.toString(), mealType)).use { cursor ->
-                val mealProducts = mutableListOf<MealProductDisplay>()
-                while (cursor.moveToNext()) {
-                    mealProducts.add(MealProductDisplay(
-                        mealItemId = cursor.getLong(cursor.getColumnIndexOrThrow(COL_ID)),
-                        productId = cursor.getLong(cursor.getColumnIndexOrThrow(COL_PRODUCT_ID)),
-                        productName = cursor.getString(cursor.getColumnIndexOrThrow(COL_NAME)),
-                        quantity = cursor.getInt(cursor.getColumnIndexOrThrow("quantity")),
-                        calories = cursor.getDouble(cursor.getColumnIndexOrThrow("calories")).toFloat(),
-                        protein = cursor.getDouble(cursor.getColumnIndexOrThrow("protein")).toFloat(),
-                        fat = cursor.getDouble(cursor.getColumnIndexOrThrow("fat")).toFloat(),
-                        carbs = cursor.getDouble(cursor.getColumnIndexOrThrow("carbs")).toFloat()
-                    ))
-                }
-                mealProducts
-            }
-        }
+
 
     suspend fun deleteMealItem(mealItemId: Long): Boolean = withContext(Dispatchers.IO) {
         deleteRows(
@@ -1265,15 +1208,6 @@ class DatabaseHelper(context: Context) :
         }
     }
 
-    fun clearWorkouts() {
-        writableDatabase.delete(TABLE_WORKOUTS, null, null)
-    }
-    fun clearMeals() {
-        writableDatabase.delete(TABLE_NUTRITION_LOG, null, null)
-    }
-    fun clearExercises() {
-        writableDatabase.delete(TABLE_EXERCISES, null, null)
-    }
     suspend fun updateMealItem(
         mealItemId: Long,
         quantity: Int,
@@ -1318,57 +1252,55 @@ class DatabaseHelper(context: Context) :
             arrayOf(userId.toString())
         )
     }
-    suspend fun getDailySummary(userId: Long): DailySummary? = withContext(Dispatchers.IO) {
-        readableDatabase.rawQuery("""
-            SELECT DATE(datetime(date/1000, 'unixepoch', 'localtime')) as log_date,
-                   SUM(calories) as total_calories,
-                   SUM(protein) as total_protein,
-                   SUM(fat) as total_fat,
-                   SUM(carbs) as total_carbs
-            FROM $TABLE_NUTRITION_LOG
-            WHERE $COL_USER_ID = ? 
-            AND DATE(datetime(date/1000, 'unixepoch', 'localtime')) = DATE('now', 'localtime')
-            GROUP BY log_date
-        """, arrayOf(userId.toString())).use { cursor ->
-            if (cursor.moveToFirst()) DailySummary(
-                date = cursor.getString(cursor.getColumnIndexOrThrow("log_date")),
-                totalCalories = cursor.getDouble(cursor.getColumnIndexOrThrow("total_calories")).toInt(),
-                totalProtein = cursor.getDouble(cursor.getColumnIndexOrThrow("total_protein")).toInt(),
-                totalFat = cursor.getDouble(cursor.getColumnIndexOrThrow("total_fat")).toInt(),
-                totalCarbs = cursor.getDouble(cursor.getColumnIndexOrThrow("total_carbs")).toInt()
-            ) else null
-        }
-    }
+
     fun getWorkoutByServerId(serverId: Long): Workout? {
-        val db = this.readableDatabase
-        val cursor = db.rawQuery(
-            "SELECT * FROM workouts WHERE server_id = ?",
+        val cursor = readableDatabase.rawQuery(
+            "SELECT * FROM $TABLE_WORKOUTS WHERE server_id = ?",
             arrayOf(serverId.toString())
         )
 
-        return if (cursor.moveToFirst()) {
-            Workout(
-                id = cursor.getLong(cursor.getColumnIndexOrThrow("id")),
-                userId = cursor.getLong(cursor.getColumnIndexOrThrow("user_id")),
-                name = cursor.getString(cursor.getColumnIndexOrThrow("name"))
-            )
-        } else null
+        return cursor.use {
+            if (it.moveToFirst()) {
+                Workout(
+                    id = it.getLong(it.getColumnIndexOrThrow(COL_ID)),
+                    userId = it.getLong(it.getColumnIndexOrThrow(COL_USER_ID)),
+                    name = it.getString(it.getColumnIndexOrThrow(COL_NAME))
+                )
+            } else null
+        }
     }
     fun updateWorkoutFromServer(workout: WorkoutDto) {
-        val db = this.writableDatabase
+        val db = writableDatabase
+
+        val serverId = workout.id
 
         val values = ContentValues().apply {
             put("name", workout.name)
             put("user_id", workout.userId)
+            put("server_id", serverId)
+            put("synced", 1)
         }
 
-        db.update(
-            "workouts",
-            values,
-            "server_id = ?",
-            arrayOf(workout.id.toString())
-        )
+        val existingId = db.rawQuery(
+            "SELECT id FROM workouts WHERE server_id = ? LIMIT 1",
+            arrayOf(serverId.toString())
+        ).use { cursor ->
+            if (cursor.moveToFirst()) cursor.getLong(0) else null
+        }
+
+        if (existingId != null) {
+            db.update(
+                TABLE_WORKOUTS,
+                values,
+                "id = ?",
+                arrayOf(existingId.toString())
+            )
+        } else {
+            db.insert(TABLE_WORKOUTS, null, values)
+        }
     }
+
+
 
     suspend fun getMealSummaryByType(userId: Long, mealType: String): MealSummary? =
         withContext(Dispatchers.IO) {
@@ -1462,25 +1394,31 @@ class DatabaseHelper(context: Context) :
         }
     }
 
-    suspend fun clearTodayMeals(userId: Long): Boolean = withContext(Dispatchers.IO) {
-        val todayStart = getStartOfDay()
-        deleteRows(
-            table = TABLE_NUTRITION_LOG,
-            whereClause = "$COL_USER_ID = ? AND date >= ?",
-            whereArgs = arrayOf(userId.toString(), todayStart.toString())
-        ) > 0
-    }
-    // DatabaseHelper.kt
+    fun insertWorkoutFromServer(userId: Long, name: String, serverId: Long): Long {
 
-    fun insertWorkoutFromServer(userId: Long, name: String): Long {
-        return writableDatabase.insert(TABLE_WORKOUTS, null, ContentValues().apply {
-            put(COL_USER_ID, userId)
-            put(COL_NAME, name)
-            put("synced", 1)       // уже синхронизировано
-            put("created_at", System.currentTimeMillis())
-        })
-    }
+        val db = writableDatabase
 
+        // 🔥 ВАЖНО: проверка на дубль
+        val cursor = db.rawQuery(
+            "SELECT id FROM workouts WHERE server_id = ?",
+            arrayOf(serverId.toString())
+        )
+
+        if (cursor.moveToFirst()) {
+            cursor.close()
+            return -1L // уже есть
+        }
+        cursor.close()
+
+        val values = ContentValues().apply {
+            put("name", name)
+            put("user_id", userId)
+            put("server_id", serverId)
+            put("synced", 1)
+        }
+
+        return db.insert("workouts", null, values)
+    }
     fun insertMealFromServer(mealDto: MealDto): Long {
         return writableDatabase.insert(TABLE_NUTRITION_LOG, null, ContentValues().apply {
             put(COL_USER_ID, mealDto.userId)
@@ -1496,15 +1434,6 @@ class DatabaseHelper(context: Context) :
         })
     }
 
-    fun getMealById(mealId: Long): Meal? {
-        return querySingle(
-            table = TABLE_NUTRITION_LOG,
-            selection = "$COL_ID = ?",
-            selectionArgs = arrayOf(mealId.toString())
-        )?.toMeal()
-    }
-
-    // В DatabaseHelper.kt:
     fun insertUserFromServer(userDto: UserDto): Long {
         val db = writableDatabase
 
@@ -1576,9 +1505,6 @@ class DatabaseHelper(context: Context) :
         }.timeInMillis
     }
 }
-
-
-
 private fun Cursor.getIntOrNull(columnName: String): Int? {
     val index = getColumnIndex(columnName)
     return if (index >= 0 && !isNull(index)) getInt(index) else null

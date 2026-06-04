@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/cardRoot"
@@ -5,180 +6,73 @@
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="16dp"
     android:layout_marginVertical="8dp"
-    android:background="@drawable/rounded_card_background"
     android:orientation="vertical"
-    android:padding="20dp"
-    android:elevation="4dp">
+    android:padding="18dp"
+    android:background="@drawable/rounded_card_background">
 
-    <LinearLayout
+    <TextView
+        android:id="@+id/tvWorkoutName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginBottom="12dp">
+        android:text="Силовая тренировка"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_primary"
+        tools:text="Силовая грудь"/>
 
-        <TextView
-            android:id="@+id/tvWorkoutName"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Название тренировки"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_primary"
-            tools:text="Силовая тренировка груди" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
+    <TextView
+        android:id="@+id/tvExerciseCount"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginBottom="12dp">
+        android:text="5 упражнений"
+        android:textSize="13sp"
+        android:textColor="@color/text_secondary"
+        android:layout_marginTop="4dp"/>
 
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <TextView
-                android:id="@+id/tvExerciseCount"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="0 упражнений"
-                android:textSize="14sp"
-                android:textColor="@color/text_secondary"
-                tools:text="5 упражнений" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="horizontal"
-            android:gravity="center_vertical|end">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="14sp"
-                android:layout_marginEnd="6dp"
-                android:visibility="gone" />
-
-            <TextView
-                android:id="@+id/tvDate"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Сегодня"
-                android:textSize="14sp"
-                android:textColor="@color/text_secondary"
-                android:visibility="gone"
-                tools:text="27 янв 2026"
-                tools:visibility="visible" />
-        </LinearLayout>
-    </LinearLayout>
+    <TextView
+        android:id="@+id/tvDate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="27 янв"
+        android:textSize="12sp"
+        android:textColor="@color/text_hint"
+        android:layout_marginTop="2dp"/>
 
     <LinearLayout
         android:id="@+id/actionsContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:visibility="visible">
+        android:layout_marginTop="14dp">
 
         <Button
             android:id="@+id/btnStartWorkout"
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="44dp"
             android:layout_weight="1"
-            android:layout_marginEnd="6dp"
             android:text="Начать"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            android:textColor="@color/button_primary_text"
-            android:backgroundTint="@color/accent_progress" />
+            android:textColor="@android:color/white"
+            android:backgroundTint="@color/accent_progress"/>
 
         <Button
             android:id="@+id/btnEditWorkout"
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="44dp"
             android:layout_weight="1"
-            android:layout_marginStart="2dp"
-            android:layout_marginEnd="2dp"
+            android:layout_marginStart="6dp"
             android:text="Изменить"
-            android:textSize="11sp"
-            android:textStyle="bold"
             android:textColor="@color/text_primary"
-            android:backgroundTint="@color/background_tertiary" />
+            android:backgroundTint="@color/background_tertiary"/>
+
         <Button
             android:id="@+id/btnDelete"
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="44dp"
             android:layout_weight="1"
-            android:layout_marginStart="4dp"
+            android:layout_marginStart="6dp"
             android:text="Удалить"
-            android:textSize="11sp"
-            android:textStyle="bold"
             android:textColor="@color/error"
-            android:backgroundTint="@color/background_tertiary" />
+            android:backgroundTint="@color/background_tertiary"/>
     </LinearLayout>
 
-    <LinearLayout
-        android:id="@+id/extraInfoContainer"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:visibility="gone"
-        android:layout_marginTop="12dp">
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@color/divider"
-            android:layout_marginBottom="12dp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Последнее выполнение:"
-                android:textSize="12sp"
-                android:textColor="@color/text_hint" />
-
-            <TextView
-                android:id="@+id/tvLastCompleted"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Не выполнялось"
-                android:textSize="12sp"
-                android:textColor="@color/text_secondary" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="4dp">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Примерное время:"
-                android:textSize="12sp"
-                android:textColor="@color/text_hint" />
-
-            <TextView
-                android:id="@+id/tvEstimatedTime"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="45 мин"
-                android:textSize="12sp"
-                android:textColor="@color/text_secondary" />
-        </LinearLayout>
-    </LinearLayout>
 </LinearLayout>
