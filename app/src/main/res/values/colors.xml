@@ -81,4 +81,14 @@
     <color name="input_stroke">#FFE4E7F2</color>
     <color name="shadow_soft">#14000000</color>
     <color name="primary_soft">#FFDCE1FF</color>
+
+    <color name="chip_selected">#FF5B67F1</color>
+    <color name="chip_unselected">#FFF1F3F9</color>
+    <color name="chip_text_selected">#FFFFFFFF</color>
+    <color name="chip_text_unselected">#FF6B7280</color>
+
+    <color name="training_card">#FFFFFFFF</color>
+    <color name="training_shadow">#12000000</color>
+
+    <color name="danger">#FFFF5252</color>
 </resources>

@@ -1,7 +1,6 @@
 package com.example.fitplan.Models.Api
 
 import android.util.Log
-import com.example.fitplan.DataBase.DatabaseHelper
 import com.example.fitplan.Models.*
 import kotlinx.coroutines.*
 import java.util.concurrent.ConcurrentHashMap
@@ -122,7 +121,6 @@ object ApiManager {
             false
         }
     }
-
     suspend fun getUsers(): List<UserDto>? {
         return try {
             val response = serverApi.getUsers()
@@ -157,6 +155,54 @@ object ApiManager {
         } catch (e: Exception) {
             Log.e("ApiManager", "login error", e)
             null
+        }
+    }
+
+    private val exerciseCache = ConcurrentHashMap<Long, String>()
+
+    suspend fun getExerciseName(id: Long): String {
+
+        exerciseCache[id]?.let { return it }
+
+        return try {
+
+            val response = serverApi.getExerciseById(id)
+
+            Log.d("EXERCISE_API", "code=${response.code()}")
+            Log.d("EXERCISE_API", "body=${response.body()}")
+            Log.d("EXERCISE_API", "error=${response.errorBody()?.string()}")
+
+            val name = response.body()?.name ?: "Без имени"
+
+            exerciseCache[id] = name
+            name
+
+        } catch (e: Exception) {
+            Log.e("EXERCISE_API", "error", e)
+            "Без имени"
+        }
+    }
+    suspend fun getWorkoutsFullClient(userId: Long):
+            List<Pair<WorkoutDto, List<WorkoutExerciseDto>>> {
+
+        return try {
+
+            val workouts = getWorkouts(userId) ?: emptyList()
+
+            workouts.map { workout ->
+
+                val exercises = try {
+                    getExercises(workout.id)
+                } catch (e: Exception) {
+                    emptyList()
+                }
+
+                workout to exercises
+            }
+
+        } catch (e: Exception) {
+            Log.e("API", "getWorkoutsFullClient error", e)
+            emptyList()
         }
     }
 
@@ -226,36 +272,45 @@ object ApiManager {
 
         }
     }
-
-
-    suspend fun addWorkout(workout: WorkoutDto): Long? {
-        return try {
-            val response = serverApi.addWorkout(workout)
-
-            Log.d("API", "addWorkout code=${response.code()}")
-            Log.d("API", "addWorkout body=${response.body()}")
-
-            if (response.isSuccessful) {
-                // ВАЖНО: если id нет — верни -1 или null
-                return response.body()?.id ?: null
-            }
-
-            null
-        } catch (e: Exception) {
-            Log.e("ApiManager", "addWorkout error", e)
-            null
-        }
-    }
-
     suspend fun getWorkouts(userId: Long): List<WorkoutDto>? {
         return try {
-            val response = serverApi.getWorkouts(userId)
+            val response = ServerApiClient.apiService.getWorkouts(userId)
             if (response.isSuccessful) response.body() else null
         } catch (e: Exception) {
             null
         }
     }
-    // ================= MEALS =================
+
+    suspend fun addWorkout(workout: WorkoutDto): Long? {
+        return try {
+
+            val response = serverApi.addWorkout(workout)
+
+            Log.d("API_WORKOUT", "code=${response.code()}")
+            Log.d("API_WORKOUT", "body=${response.body()}")
+            Log.d("API_WORKOUT", "error=${response.errorBody()?.string()}")
+
+            if (response.isSuccessful) {
+
+                val body = response.body()
+
+                // 🔥 ВАЖНО: безопасное получение id
+                val id = body?.id
+
+                if (id != null && id > 0) {
+                    id
+                } else {
+                    Log.e("API_WORKOUT", "Invalid workout id from server")
+                    null
+                }
+
+            } else null
+
+        } catch (e: Exception) {
+            Log.e("ApiManager", "addWorkout error", e)
+            null
+        }
+    }
 
     suspend fun addMeal(meal: MealDto): Boolean {
         return try {
@@ -302,35 +357,52 @@ object ApiManager {
         return try {
             val response = serverApi.getExercises(workoutId)
 
+            // 🔥 ДОБАВЬТЕ ПОДРОБНЫЙ ЛОГ
+            Log.d("EXERCISES_API", "Response code: ${response.code()}")
+            Log.d("EXERCISES_API", "Response body: ${response.body()}")
+            Log.d("EXERCISES_API", "Response error: ${response.errorBody()?.string()}")
+
             if (response.isSuccessful) {
-                response.body() ?: emptyList()
+                val exercises = response.body() ?: emptyList()
+                Log.d("EXERCISES_API", "Parsed exercises count: ${exercises.size}")
+                exercises.forEach { ex ->
+                    Log.d("EXERCISES_API", "Exercise: name=${ex.name}, sets=${ex.sets}, reps=${ex.reps}")
+                }
+                exercises
             } else {
+                Log.e("EXERCISES_API", "Response not successful: ${response.code()}")
                 emptyList()
             }
-
         } catch (e: Exception) {
             Log.e("ApiManager", "getExercises error", e)
             emptyList()
         }
     }
 
-    suspend fun addExercise(ex: WorkoutExerciseDto): Boolean {
+    suspend fun addWorkoutExercise(dto: WorkoutExerciseCreateDto): Boolean {
         return try {
-            val response = serverApi.addExercise(ex)
+
+            val response = serverApi.addWorkoutExercise(dto)
+
+            Log.d("API_WORKOUT_EX", "code=${response.code()}")
+            Log.d("API_WORKOUT_EX", "body=${response.body()}")
+            Log.d("API_WORKOUT_EX", "error=${response.errorBody()?.string()}")
+
+            response.isSuccessful && response.body()?.success == true
+
+        } catch (e: Exception) {
+            Log.e("ApiManager", "addWorkoutExercise error", e)
+            false
+        }
+    }
+    suspend fun createExerciseWithWorkout(dto: WorkoutExerciseCreateDto): Boolean {
+        return try {
+            val response = serverApi.createExerciseWithWorkout(dto)
             response.isSuccessful && response.body()?.success == true
         } catch (e: Exception) {
-            Log.e("ApiManager", "addExercise error", e)
+            Log.e("ApiManager", "createExerciseWithWorkout error", e)
             false
         }
     }
 
-    suspend fun getProducts(): List<ProductDto>? {
-        return try {
-            val response = serverApi.getProducts()
-            if (response.isSuccessful) response.body() else null
-        } catch (e: Exception) {
-            Log.e("ApiManager", "getProducts error", e)
-            null
-        }
-    }
 }

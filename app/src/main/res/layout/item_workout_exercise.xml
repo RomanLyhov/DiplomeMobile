@@ -49,12 +49,16 @@
                 android:orientation="vertical">
 
                 <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:text="ПОДХОДЫ"
                     android:textSize="10sp"
-                    android:textColor="@color/text_hint"/>
+                    android:textColor="@color/text_hint" />
 
                 <TextView
                     android:id="@+id/tvSets"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:text="3"
                     android:textSize="22sp"
                     android:textStyle="bold"
@@ -70,12 +74,16 @@
                 android:orientation="vertical">
 
                 <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:text="ПОВТОРЫ"
                     android:textSize="10sp"
                     android:textColor="@color/text_hint"/>
 
                 <TextView
                     android:id="@+id/tvReps"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:text="10"
                     android:textSize="22sp"
                     android:textStyle="bold"
@@ -91,18 +99,24 @@
                 android:orientation="vertical">
 
                 <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:text="ВЕС"
                     android:textSize="10sp"
                     android:textColor="@color/text_hint"/>
 
                 <TextView
                     android:id="@+id/tvWeight"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:text="60"
                     android:textSize="22sp"
                     android:textStyle="bold"
                     android:textColor="@color/accent_training"/>
 
                 <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:text="кг"
                     android:textSize="10sp"
                     android:textColor="@color/text_hint"/>
@@ -117,22 +131,52 @@
                 android:orientation="vertical">
 
                 <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:text="ОТДЫХ"
                     android:textSize="10sp"
                     android:textColor="@color/text_hint"/>
 
                 <TextView
                     android:id="@+id/tvRest"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:text="60"
                     android:textSize="22sp"
                     android:textStyle="bold"
                     android:textColor="@color/accent_recovery"/>
 
                 <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:text="сек"
                     android:textSize="10sp"
                     android:textColor="@color/text_hint"/>
             </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- КРУЖКИ ПОДХОДОВ - НОВЫЙ БЛОК -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="12dp"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Подходы: "
+                android:textSize="14sp"
+                android:textColor="@color/text_hint"
+                android:layout_marginEnd="8dp"/>
+
+            <LinearLayout
+                android:id="@+id/containerSets"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal" />
 
         </LinearLayout>
 

@@ -3,21 +3,27 @@ package com.example.fitplan.ui
 import android.R as AndroidR
 import com.example.fitplan.R
 import android.app.AlertDialog
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.example.fitplan.DataBase.DatabaseHelper
 import com.example.fitplan.Models.Api.ApiManager
+import com.example.fitplan.Models.Api.CalendarCreateDto
+import com.example.fitplan.Models.Api.ServerApiClient
 import com.example.fitplan.Models.Api.SyncManager
 import com.example.fitplan.Models.Exercise
 import com.example.fitplan.Models.Workout
+import com.example.fitplan.Models.WorkoutDto
+import com.example.fitplan.Models.WorkoutExerciseDto
 import com.example.fitplan.ui.login.Login
 import kotlinx.coroutines.*
 import kotlin.coroutines.CoroutineContext
@@ -25,34 +31,37 @@ import kotlin.coroutines.CoroutineContext
 class WorkoutFragment : Fragment(), CoroutineScope {
 
     private lateinit var job: Job
-    override val coroutineContext: CoroutineContext
-        get() = Dispatchers.Main + job
+    override val coroutineContext get() = Dispatchers.Main + job
 
-    private lateinit var db: DatabaseHelper
     private var userId: Long = -1L
     private lateinit var containerWorkouts: LinearLayout
     private lateinit var emptyStateCard: LinearLayout
     private lateinit var createWorkoutButton: Button
     private lateinit var btnRefresh: Button
+
     private val expandedWorkouts = mutableSetOf<Long>()
-    private val workoutContainers = mutableMapOf<Long, View>()
+    private val workoutExercisesCache = mutableMapOf<Long, List<Exercise>>()
+
     private var isLoading = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        db = DatabaseHelper(requireContext())
         job = Job()
     }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
+
         val view = inflater.inflate(R.layout.fragment_workout, container, false)
 
-        // Инициализация элементов фрагмента
         containerWorkouts = view.findViewById(R.id.containerWorkouts)
         emptyStateCard = view.findViewById(R.id.emptyStateCard)
         createWorkoutButton = view.findViewById(R.id.createWorkoutButton)
         btnRefresh = view.findViewById(R.id.btnRefresh)
+
+        // Кнопка истории
+        val btnHistory = view.findViewById<TextView>(R.id.btnHistory)
 
         createWorkoutButton.setOnClickListener {
             parentFragmentManager.beginTransaction()
@@ -63,8 +72,16 @@ class WorkoutFragment : Fragment(), CoroutineScope {
 
         btnRefresh.setOnClickListener {
             expandedWorkouts.clear()
-            workoutContainers.clear()
+            workoutExercisesCache.clear()
             loadWorkouts()
+        }
+
+        // Обработка нажатия на историю
+        btnHistory.setOnClickListener {
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, WorkoutHistoryFragment())
+                .addToBackStack(null)
+                .commit()
         }
 
         return view
@@ -75,22 +92,17 @@ class WorkoutFragment : Fragment(), CoroutineScope {
 
         userId = requireContext()
             .getSharedPreferences("session", android.content.Context.MODE_PRIVATE)
-            .getLong("user_id", -1L)
-
-        Log.d("WORKOUT", "onViewCreated → UserId = $userId")
+            .getLong("server_user_id", -1L)
 
         if (userId == -1L) {
-            Log.e("WORKOUT", "USER_ID = -1 → переход на Login")
             parentFragmentManager.beginTransaction()
                 .replace(R.id.fragment_container, Login())
                 .commit()
-            return
         }
     }
 
     override fun onResume() {
         super.onResume()
-        SyncManager.startSync(requireContext())
         loadWorkouts()
     }
 
@@ -98,36 +110,36 @@ class WorkoutFragment : Fragment(), CoroutineScope {
         super.onDestroy()
         job.cancel()
     }
-    fun refreshWorkouts() {
-        expandedWorkouts.clear()
-        workoutContainers.clear()
-        loadWorkouts()
-    }
+
+    // ================= LOAD WORKOUTS FROM SERVER =================
 
     private fun loadWorkouts() {
-        if (userId == -1L || isLoading) return
 
+        if (userId == -1L || isLoading) return
         isLoading = true
 
         launch {
             try {
-                // 🔥 УБИРАЕМ ЗАПРОС К СЕРВЕРУ - ОН ТУТ НЕ НУЖЕН!
-                // Просто загружаем из локальной БД
 
-                val workouts = withContext(Dispatchers.IO) {
-                    db.getWorkoutsByUser(userId)  // локальный userId
+                val data = withContext(Dispatchers.IO) {
+                    ApiManager.getWorkoutsFullClient(userId)
                 }
 
-                withContext(Dispatchers.Main) {
-                    containerWorkouts.removeAllViews()
-                    workoutContainers.clear()
-                    expandedWorkouts.clear()
+                Log.d("WORKOUTS", "SIZE = ${data.size}")
 
-                    if (workouts.isEmpty()) {
+                withContext(Dispatchers.Main) {
+
+                    containerWorkouts.removeAllViews()
+
+                    if (data.isEmpty()) {
                         emptyStateCard.visibility = View.VISIBLE
-                    } else {
-                        emptyStateCard.visibility = View.GONE
-                        workouts.distinctBy { it.id }.forEach { addWorkoutCard(it) }
+                        return@withContext
+                    }
+
+                    emptyStateCard.visibility = View.GONE
+
+                    data.forEach { (workout, exercises) ->
+                        addWorkoutCard(workout, exercises)
                     }
                 }
 
@@ -139,234 +151,297 @@ class WorkoutFragment : Fragment(), CoroutineScope {
         }
     }
 
-    private fun addWorkoutCard(workout: Workout) {
-        try {
-            Log.d("WORKOUT", "Добавление карточки тренировки: ${workout.name}")
+    // ================= CARD =================
 
-            // Создаем основной контейнер
-            val workoutContainer = LinearLayout(requireContext()).apply {
-                orientation = LinearLayout.VERTICAL
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    setMargins(0, 8, 0, 8)
+    private fun addWorkoutCard(
+        workout: WorkoutDto,
+        exercises: List<WorkoutExerciseDto>
+    ) {
+        val container = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+
+        val card = layoutInflater.inflate(R.layout.workout_card, container, false)
+
+        val title = card.findViewById<TextView>(R.id.tvWorkoutName)
+        val count = card.findViewById<TextView>(R.id.tvExerciseCount)
+        val dateView = card.findViewById<TextView>(R.id.tvDate)
+        val actions = card.findViewById<LinearLayout>(R.id.actionsContainer)
+        val btnStart = card.findViewById<Button>(R.id.btnStartWorkout)
+        val btnEdit = card.findViewById<Button>(R.id.btnEditWorkout)
+        val btnDelete = card.findViewById<Button>(R.id.btnDelete)
+
+        val exercisesContainer = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            visibility = View.GONE
+        }
+
+        title.text = workout.name
+        count.text = "${exercises.size} упражнений"
+
+        // Дата
+        dateView.text = workout.createdAt?.let { formatDate(it) } ?: ""
+
+        // Раскрытие по клику на карточку
+        card.findViewById<LinearLayout>(R.id.cardRoot).setOnClickListener {
+            val expanded = exercisesContainer.visibility == View.VISIBLE
+            if (expanded) {
+                exercisesContainer.visibility = View.GONE
+            } else {
+                exercisesContainer.visibility = View.VISIBLE
+                exercisesContainer.removeAllViews()
+                exercises.forEach { ex ->
+                    val v = layoutInflater.inflate(R.layout.exercise_card, exercisesContainer, false)
+                    v.findViewById<TextView>(R.id.tvExerciseName).text =
+                        if (ex.name.isNotEmpty()) ex.name else "Без названия"
+                    v.findViewById<TextView>(R.id.tvSets).text = ex.sets.toString()
+                    v.findViewById<TextView>(R.id.tvReps).text = ex.reps.toString()
+                    v.findViewById<TextView>(R.id.tvWeight).text = "${ex.weight} кг"
+                    v.findViewById<TextView>(R.id.tvRest).text = "${ex.rest} сек"
+                    exercisesContainer.addView(v)
                 }
             }
+        }
 
-            // Инфлейтим макет карточки
-            val workoutCard = layoutInflater.inflate(R.layout.workout_card, workoutContainer, false)
+        btnStart.setOnClickListener {
 
-            // Находим элементы UI
-            val cardRoot = workoutCard.findViewById<LinearLayout>(R.id.cardRoot)
-            val tvWorkoutName = workoutCard.findViewById<TextView>(R.id.tvWorkoutName)
-            val tvExerciseCount = workoutCard.findViewById<TextView>(R.id.tvExerciseCount)
-            val actionsContainer = workoutCard.findViewById<LinearLayout>(R.id.actionsContainer)
-
-            // НАХОДИМ ВСЕ КНОПКИ (теперь включая кнопку удаления)
-            val btnStart = workoutCard.findViewById<Button>(R.id.btnStartWorkout)
-            val btnEdit = workoutCard.findViewById<Button>(R.id.btnEditWorkout)
-            val btnDelete = workoutCard.findViewById<Button>(R.id.btnDelete)
-
-            // Создаем контейнер для упражнений
-            val exercisesContainer = LinearLayout(requireContext()).apply {
-                orientation = LinearLayout.VERTICAL
-                visibility = if (expandedWorkouts.contains(workout.id)) View.VISIBLE else View.GONE
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    setMargins(16, 0, 16, 16)
-                }
-            }
-
-            // Сохраняем ссылку на контейнер
-            workoutContainers[workout.id] = workoutContainer
-
-            launch {
-                try {
-                    val exercises = withContext(Dispatchers.IO) {
-                        db.getExercises(workout.id)
+            val calendar = java.util.Calendar.getInstance()
+            android.app.DatePickerDialog(
+                requireContext(),
+                { _, year, month, day ->
+                    val selectedCal = java.util.Calendar.getInstance().apply {
+                        set(year, month, day, 0, 0, 0)
+                        set(java.util.Calendar.MILLISECOND, 0)
                     }
+                    val timestamp = selectedCal.timeInMillis
 
-                    // Обновляем UI в основном потоке
-                    withContext(Dispatchers.Main) {
-                        tvExerciseCount.text = "${exercises.size} упражнений"
-                        tvWorkoutName.text = if (expandedWorkouts.contains(workout.id))
-                            "▼ ${workout.name}" else "▶ ${workout.name}"
-
-                        actionsContainer.visibility =
-                            if (expandedWorkouts.contains(workout.id)) View.VISIBLE else View.GONE
-
-                        // Обработчик клика на карточку
-                        cardRoot.setOnClickListener {
-                            toggleWorkout(workout, tvWorkoutName, actionsContainer,
-                                exercisesContainer, exercises)
-                        }
-
-                        // Обработчик долгого нажатия для удаления
-                        cardRoot.setOnLongClickListener {
-                            showDeleteConfirmationDialog(workout, workoutContainer)
-                            true
-                        }
-
-                        // Если тренировка развернута, добавляем упражнения
-                        if (expandedWorkouts.contains(workout.id)) {
-                            addExercisesToContainer(exercises, exercisesContainer)
-                        }
-
-                        // Обработчики других кнопок
-                        btnStart.setOnClickListener {
-                            val bundle = Bundle().apply { putLong("WORKOUT_ID", workout.id) }
-                            parentFragmentManager.beginTransaction()
-                                .replace(R.id.fragment_container, WorkoutProcessFragment().apply { arguments = bundle })
-                                .addToBackStack(null)
-                                .commit()
-                        }
-
-                        btnEdit.setOnClickListener {
-                            val bundle = Bundle().apply { putLong("WORKOUT_ID", workout.id) }
-                            parentFragmentManager.beginTransaction()
-                                .replace(R.id.fragment_container, CreateWorkoutFragment().apply { arguments = bundle })
-                                .addToBackStack(null)
-                                .commit()
-                        }
-
-                        // Обработчик кнопки удаления
-                        btnDelete.setOnClickListener {
-                            showDeleteConfirmationDialog(workout, workoutContainer)
+                    launch {
+                        try {
+                            val response = withContext(Dispatchers.IO) {
+                                ServerApiClient.apiService.addToCalendar(
+                                    CalendarCreateDto(
+                                        userId = userId,
+                                        workoutId = workout.id,
+                                        scheduledDate = timestamp
+                                    )
+                                )
+                            }
+                            if (response.isSuccessful) {
+                                val dateStr = java.text.SimpleDateFormat("d MMM yyyy", java.util.Locale("ru"))
+                                    .format(selectedCal.time)
+                                parentFragmentManager.beginTransaction()
+                                    .replace(R.id.fragment_container,
+                                        WorkoutProcessFragment.newInstance(workout.id, workout.name))
+                                    .addToBackStack(null)
+                                    .commit()
+                                Toast.makeText(
+                                    requireContext(),
+                                    "Тренировка '${workout.name}' запланирована на $dateStr",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                // Планируем уведомление
+                                scheduleNotification(workout.name, timestamp)
+                            } else {
+                                Toast.makeText(requireContext(), "Ошибка планирования", Toast.LENGTH_SHORT).show()
+                            }
+                        } catch (e: Exception) {
+                            Log.e("CALENDAR", "error", e)
                         }
                     }
-                } catch (e: Exception) {
-                    Log.e("WORKOUT", "Ошибка загрузки упражнений для тренировки ${workout.id}", e)
-                }
-            }
+                },
+                calendar.get(java.util.Calendar.YEAR),
+                calendar.get(java.util.Calendar.MONTH),
+                calendar.get(java.util.Calendar.DAY_OF_MONTH)
+            ).show()
 
-            // Добавляем карточку в контейнеры
-            workoutContainer.addView(workoutCard)
-            workoutContainer.addView(exercisesContainer)
-            containerWorkouts.addView(workoutContainer)
+        }
+
+
+        // Изменить
+        btnEdit.setOnClickListener {
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container,
+                    EditWorkoutFragment.newInstance(workout.id, workout.name))
+                .addToBackStack(null)
+                .commit()
+        }
+
+        // Удалить
+        btnDelete.setOnClickListener {
+            Log.d("DELETE_DEBUG", "workout.id = ${workout.id}, name = ${workout.name}")
+            android.app.AlertDialog.Builder(requireContext())
+                .setTitle("Удалить тренировку?")
+                .setMessage("'${workout.name}' будет удалена безвозвратно")
+                .setPositiveButton("Удалить") { _, _ ->
+                    launch {
+                        val success = withContext(Dispatchers.IO) {
+                            deleteWorkoutFromServer(workout.id)
+                        }
+                        if (success) {
+                            containerWorkouts.removeView(container)
+                            Toast.makeText(requireContext(), "Удалено", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(requireContext(), "Ошибка удаления", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+                .setNegativeButton("Отмена", null)
+                .show()
+        }
+
+        container.addView(card)
+        container.addView(exercisesContainer)
+        containerWorkouts.addView(container)
+    }
+
+    private fun formatDate(raw: String): String {
+        return try {
+            val inputFormat = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault())
+            val outputFormat = java.text.SimpleDateFormat("d MMM", java.util.Locale("ru"))
+            val date = inputFormat.parse(raw)
+            if (date != null) outputFormat.format(date) else ""
+        } catch (e: Exception) {
+            try {
+                val inputFormat2 = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.getDefault())
+                val outputFormat = java.text.SimpleDateFormat("d MMM", java.util.Locale("ru"))
+                val date = inputFormat2.parse(raw)
+                if (date != null) outputFormat.format(date) else ""
+            } catch (e2: Exception) {
+                ""
+            }
+        }
+    }
+
+    private fun scheduleNotification(workoutName: String, timestampMs: Long) {
+        val context = requireContext()
+
+        // Создаём канал уведомлений (нужно для Android 8+)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val channel = android.app.NotificationChannel(
+                "workout_channel",
+                "Тренировки",
+                android.app.NotificationManager.IMPORTANCE_HIGH
+            ).apply { description = "Напоминания о тренировках" }
+            val manager = context.getSystemService(android.app.NotificationManager::class.java)
+            manager.createNotificationChannel(channel)
+        }
+
+        // Считаем задержку
+        val delay = timestampMs - System.currentTimeMillis()
+        if (delay <= 0) return
+
+        // Запускаем корутину с задержкой
+        launch {
+            kotlinx.coroutines.delay(delay)
+            if (!isAdded) return@launch
+            val notification = androidx.core.app.NotificationCompat.Builder(context, "workout_channel")
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle("Тренировка сегодня!")
+                .setContentText("Запланировано: $workoutName")
+                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .build()
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE)
+                    as android.app.NotificationManager
+            manager.notify(workoutName.hashCode(), notification)
+        }
+    }
+
+    private suspend fun deleteWorkoutFromServer(workoutId: Long): Boolean {
+        return try {
+
+            Log.d("DELETE_API", "Deleting workoutId=$workoutId")
+
+            val response =
+                ServerApiClient.apiService.deleteWorkout(workoutId)
+
+            Log.d("DELETE_API", "code=${response.code()}")
+            Log.d("DELETE_API", "body=${response.body()}")
+            Log.d(
+                "DELETE_API",
+                "error=${response.errorBody()?.string()}"
+            )
+
+            response.isSuccessful
 
         } catch (e: Exception) {
-            Log.e("WORKOUT", "Ошибка при создании карточки тренировки", e)
+
+            Log.e("DELETE_API", "delete crash", e)
+            false
         }
     }
+
+    // ================= TOGGLE + LOAD EXERCISES =================
 
     private fun toggleWorkout(
-        workout: Workout,
-        tvTitle: TextView,
+        workoutId: Long,
+        title: TextView,
         actions: LinearLayout,
-        exercisesContainer: LinearLayout,
-        exercises: List<Exercise>
+        container: LinearLayout
     ) {
-        if (expandedWorkouts.contains(workout.id)) {
-            // Сворачиваем
-            expandedWorkouts.remove(workout.id)
-            tvTitle.text = "▶ ${workout.name}"
+
+        if (expandedWorkouts.contains(workoutId)) {
+
+            expandedWorkouts.remove(workoutId)
+            container.visibility = View.GONE
+            container.removeAllViews()
             actions.visibility = View.GONE
-            exercisesContainer.visibility = View.GONE
-            exercisesContainer.removeAllViews()
+            title.text = "▶ тренировка"
+
         } else {
-            // Разворачиваем
-            expandedWorkouts.add(workout.id)
-            tvTitle.text = "▼ ${workout.name}"
+
+            expandedWorkouts.add(workoutId)
+            container.visibility = View.VISIBLE
             actions.visibility = View.VISIBLE
-            exercisesContainer.visibility = View.VISIBLE
-            addExercisesToContainer(exercises, exercisesContainer)
+            title.text = "▼ тренировка"
+
+            loadExercises(workoutId, container)
         }
     }
 
-    private fun addExercisesToContainer(exercises: List<Exercise>, container: LinearLayout) {
-        container.removeAllViews()
+    private fun loadExercises(workoutId: Long, container: LinearLayout) {
 
-        if (exercises.isEmpty()) {
-            val textView = TextView(requireContext()).apply {
-                text = "Нет упражнений"
-                setTextColor(resources.getColor(R.color.text_secondary, null))
-                textSize = 14f
-                setPadding(16, 8, 16, 8)
-            }
-            container.addView(textView)
-            return
-        }
-
-        exercises.forEach { exercise ->
-            val card = layoutInflater.inflate(R.layout.exercise_card, container, false)
-            card.findViewById<TextView>(R.id.tvExerciseName).text = exercise.name
-            card.findViewById<TextView>(R.id.tvSets).text = exercise.sets.toString()
-            card.findViewById<TextView>(R.id.tvReps).text = exercise.reps.toString()
-            card.findViewById<TextView>(R.id.tvWeight).text = "${exercise.weight} кг"
-            card.findViewById<TextView>(R.id.tvRest)?.text = "${exercise.rest} сек"
-            container.addView(card)
-        }
-    }
-
-    // ====================== МЕТОДЫ ДЛЯ УДАЛЕНИЯ ТРЕНИРОВКИ ======================
-
-    private fun showDeleteConfirmationDialog(workout: Workout, workoutContainer: View) {
-        AlertDialog.Builder(requireContext())
-            .setTitle("Удалить тренировку")
-            .setMessage("Вы уверены, что хотите удалить тренировку \"${workout.name}\"?\n\nВсе упражнения в ней также будут удалены.")
-            .setPositiveButton("Удалить") { dialog, which ->
-                deleteWorkout(workout, workoutContainer)
-            }
-            .setNegativeButton("Отмена", null)
-            .setCancelable(true)
-            .show()
-    }
-
-    private fun deleteWorkout(workout: Workout, workoutContainer: View) {
         launch {
-            try {
-                val success = withContext(Dispatchers.IO) {
-                    db.deleteWorkout(workout.id)
-                }
 
-                withContext(Dispatchers.Main) {
-                    if (success) {
-                        // Удаляем карточку с анимацией
-                        workoutContainer.animate()
-                            .alpha(0f)
-                            .scaleX(0.9f)
-                            .scaleY(0.9f)
-                            .setDuration(250)
-                            .withEndAction {
-                                containerWorkouts.removeView(workoutContainer)
-                                workoutContainers.remove(workout.id)
-                                expandedWorkouts.remove(workout.id)
+            val exercises = withContext(Dispatchers.IO) {
+                ApiManager.getExercises(workoutId)
+            }
 
-                                // Проверяем, нужно ли показать пустое состояние
-                                if (containerWorkouts.childCount == 0) {
-                                    emptyStateCard.visibility = View.VISIBLE
-                                }
-                            }
-                            .start()
+            container.removeAllViews()
 
-                        Toast.makeText(
-                            requireContext(),
-                            "Тренировка \"${workout.name}\" удалена",
-                            Toast.LENGTH_SHORT
-                        ).show()
+            if (exercises.isEmpty()) {
+                val tv = TextView(requireContext())
+                tv.text = "Нет упражнений"
+                container.addView(tv)
+                return@launch
+            }
 
-                        Log.d("WORKOUT", "Тренировка ${workout.name} удалена")
-                    } else {
-                        Toast.makeText(
-                            requireContext(),
-                            "Не удалось удалить тренировку",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("WORKOUT", "Ошибка при удалении тренировки", e)
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(
-                        requireContext(),
-                        "Ошибка при удалении: ${e.message}",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+            exercises.forEach { ex ->
+
+                val v = layoutInflater.inflate(R.layout.exercise_card, container, false)
+
+                val nameView = v.findViewById<TextView>(R.id.tvExerciseName)
+                val setsView = v.findViewById<TextView>(R.id.tvSets)
+                val repsView = v.findViewById<TextView>(R.id.tvReps)
+                val weightView = v.findViewById<TextView>(R.id.tvWeight)
+                val restView = v.findViewById<TextView>(R.id.tvRest)
+
+                // сразу ставим заглушку
+                nameView.text = if (ex.name.isNotEmpty()) ex.name else "Без названия"
+
+                setsView.text = ex.sets.toString()
+                repsView.text = ex.reps.toString()
+                weightView.text = "${ex.weight} кг"
+                restView.text = "${ex.rest} сек"
+
+                container.addView(v)
             }
         }
+    }
+
+    // ================= DELETE (если нужно потом серверный) =================
+
+    private fun deleteWorkout(workoutId: Long) {
+        Toast.makeText(requireContext(), "Нужен endpoint удаления", Toast.LENGTH_SHORT).show()
     }
 }

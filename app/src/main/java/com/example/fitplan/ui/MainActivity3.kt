@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.View
+import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -205,13 +206,6 @@ class MainActivity3 : AppCompatActivity() {
                             db.deleteWorkout(local.id)
                         }
                     }
-
-                    withContext(Dispatchers.Main) {
-                        val fragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
-                        if (fragment is WorkoutFragment) {
-                            fragment.refreshWorkouts()
-                        }
-                    }
                 }
             } catch (e: Exception) {
                 Log.e("WORKOUT_SYNC", "Error", e)
@@ -251,9 +245,7 @@ class MainActivity3 : AppCompatActivity() {
                         if (fragment is ProfileFragment) {
                             fragment.refreshUserData()
                         }
-                        if (fragment is WorkoutFragment) {
-                            fragment.refreshWorkouts()
-                        }
+
                     }
                 }
             } catch (e: Exception) {
@@ -407,12 +399,15 @@ class MainActivity3 : AppCompatActivity() {
 
     private fun openTab(tab: String) {
 
+        Log.d("TAB", "Opening tab = $tab")
+
         if (currentTab == tab) return
         currentTab = tab
 
         val fragment = when (tab) {
             "food" -> NutritionFragment()
             "workout" -> WorkoutFragment()
+            "progress" -> ProgressFragment()
             "profile" -> ProfileFragment()
             else -> return
         }
@@ -429,39 +424,51 @@ class MainActivity3 : AppCompatActivity() {
 
     private fun setupPanelClicks() {
 
-        findViewById<LinearLayout>(R.id.nav_food).setOnClickListener {
-            openTab("food")
-        }
+        val food = findViewById<LinearLayout?>(R.id.nav_food)
+        val workout = findViewById<LinearLayout?>(R.id.nav_workout)
+        val progress = findViewById<LinearLayout?>(R.id.nav_progress)
+        val profile = findViewById<LinearLayout?>(R.id.nav_profile)
 
-        findViewById<LinearLayout>(R.id.nav_workout).setOnClickListener {
-            openTab("workout")
-        }
+        food?.setOnClickListener { openTab("food") }
+        workout?.setOnClickListener { openTab("workout") }
+        progress?.setOnClickListener { openTab("progress") }
+        profile?.setOnClickListener { openTab("profile") }
 
-        findViewById<LinearLayout>(R.id.nav_profile).setOnClickListener {
-            openTab("profile")
-        }
+        Log.d("NAV_DEBUG", "initialized")
     }
-
     private fun setActive(tab: String) {
 
         setColor(R.id.nav_food, R.color.bottom_nav_inactive)
         setColor(R.id.nav_workout, R.color.bottom_nav_inactive)
+        setColor(R.id.nav_progress, R.color.bottom_nav_inactive)
         setColor(R.id.nav_profile, R.color.bottom_nav_inactive)
 
         when (tab) {
             "food" -> setColor(R.id.nav_food, R.color.bottom_nav_active)
             "workout" -> setColor(R.id.nav_workout, R.color.bottom_nav_active)
+            "progress" -> setColor(R.id.nav_progress, R.color.bottom_nav_active)
             "profile" -> setColor(R.id.nav_profile, R.color.bottom_nav_active)
         }
     }
 
     private fun setColor(id: Int, color: Int) {
-        val view = findViewById<LinearLayout>(id)
-        val icon = view.getChildAt(0) as ImageView
-        val text = view.getChildAt(1) as TextView
+
+        val view = findViewById<LinearLayout?>(id)
+        if (view == null) {
+            Log.e("NAV", "Missing view id=$id")
+            return
+        }
+
+        val icon = view.getChildAtOrNull(0) as? ImageView
+        val text = view.getChildAtOrNull(1) as? TextView
 
         val c = ContextCompat.getColor(this, color)
-        icon.setColorFilter(c)
-        text.setTextColor(c)
+
+        icon?.setColorFilter(c)
+        text?.setTextColor(c)
+    }
+
+    private fun ViewGroup.getChildAtOrNull(index: Int): View? {
+        return if (childCount > index) getChildAt(index) else null
     }
 }

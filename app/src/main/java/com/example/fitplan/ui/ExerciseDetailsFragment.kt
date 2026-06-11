@@ -1,0 +1,36 @@
+package com.example.fitplan.ui
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.TextView
+import androidx.fragment.app.Fragment
+import com.example.fitplan.R
+
+class ExerciseDetailsFragment : Fragment() {
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+
+        val view = inflater.inflate(
+            R.layout.fragment_exercise_details,
+            container,
+            false
+        )
+
+        val tvTitle = view.findViewById<TextView>(R.id.tvTitle)
+        val tvDescription = view.findViewById<TextView>(R.id.tvDescription)
+
+        val name = arguments?.getString("name") ?: ""
+        val description = arguments?.getString("description") ?: ""
+
+        tvTitle.text = name
+        tvDescription.text = description
+
+        return view
+    }
+}

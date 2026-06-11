@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    app:cardCornerRadius="22dp"
+    app:cardElevation="3dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="18dp"
+        android:background="#FFFFFF">
+
+        <TextView
+            android:id="@+id/tvExerciseName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Жим лёжа"
+            android:textStyle="bold"
+            android:textSize="20sp"
+            android:textColor="#111827"/>
+
+        <TextView
+            android:id="@+id/tvRecordWeight"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Рекорд веса: 100 кг"
+            android:textSize="15sp"
+            android:textColor="#374151"
+            android:layout_marginTop="8dp"/>
+
+        <TextView
+            android:id="@+id/tvRecordReps"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=" Макс повторений: 12"
+            android:textSize="15sp"
+            android:textColor="#374151"
+            android:layout_marginTop="4dp"/>
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>

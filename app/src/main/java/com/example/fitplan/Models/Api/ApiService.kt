@@ -33,7 +33,10 @@
 
         @POST("exercises")
         suspend fun addExercise(@Body exercise: WorkoutExerciseDto): Response<ApiResponse>
-
         @GET("exercises/{userId}")
         suspend fun getExercises(@Path("userId") userId: Long): Response<List<WorkoutExerciseDto>>
+        @GET("workouts/{userId}")
+        suspend fun getWorkouts(
+            @Path("userId") userId: Long
+        ): Response<List<WorkoutDto>>
     }

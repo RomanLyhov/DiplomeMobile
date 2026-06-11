@@ -10,182 +10,196 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="20dp">
 
         <!-- HEADER -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="20dp">
 
-            <Button
+            <ImageButton
                 android:id="@+id/btnBack"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:text="←"
-                android:textSize="18sp"
-                android:textColor="@color/text_primary"
-                android:background="@drawable/bg_circle_light" />
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_circle_light"
+                android:padding="12dp"
+                android:src="@android:drawable/ic_media_previous"/>
 
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Новая тренировка"
-                android:textSize="20sp"
+                android:text="Создание тренировки"
+                android:textSize="22sp"
                 android:textStyle="bold"
                 android:gravity="center"
-                android:textColor="@color/text_primary" />
+                android:textColor="@color/text_primary"/>
         </LinearLayout>
 
-        <!-- CARD: MAIN FORM -->
+        <!-- WORKOUT CARD -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="24dp"
+            app:cardCornerRadius="28dp"
             app:cardElevation="0dp"
-            app:strokeWidth="1dp"
-            app:strokeColor="@color/surface_variant"
-            android:layout_marginBottom="16dp">
+            app:strokeColor="@color/card_stroke"
+            app:strokeWidth="1dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="20dp">
 
-                <!-- WORKOUT NAME -->
                 <TextView
+                    android:text="Название тренировки"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginBottom="8dp"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Название"
-                    android:textSize="12sp"
-                    android:textColor="@color/text_secondary" />
+                    android:layout_height="wrap_content"/>
 
                 <EditText
                     android:id="@+id/etWorkoutName"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:hint="Например: Силовая грудь"
-                    android:background="@color/background_tertiary"
-                    android:paddingHorizontal="12dp"
-                    android:textColor="@color/text_primary"
-                    android:layout_marginBottom="16dp" />
+                    android:layout_height="56dp"
+                    android:hint="Например: Грудь + трицепс"
+                    android:background="@drawable/bg_input"
+                    android:paddingHorizontal="16dp"/>
 
-                <!-- EXERCISE NAME -->
                 <TextView
+                    android:text="Описание"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="8dp"
                     android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+
+                <EditText
+                    android:id="@+id/etDescription"
+                    android:layout_width="match_parent"
+                    android:layout_height="100dp"
+                    android:gravity="top"
+                    android:hint="Описание тренировки..."
+                    android:background="@drawable/bg_input"
+                    android:padding="16dp"/>
+
+                <TextView
+                    android:text="Сложность"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginTop="20dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+
+                <RadioGroup
+                    android:id="@+id/rgDifficulty"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Упражнение"
-                    android:textSize="12sp"
-                    android:textColor="@color/text_secondary" />
+                    android:orientation="horizontal"
+                    android:layout_marginTop="10dp">
+
+                    <RadioButton
+                        android:id="@+id/rbBeginner"
+                        android:text="Новичок"
+                        android:textColor="@color/text_primary"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+
+                    <RadioButton
+                        android:id="@+id/rbMedium"
+                        android:text="Средний"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginStart="12dp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+
+                    <RadioButton
+                        android:id="@+id/rbHard"
+                        android:text="Сложный"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginStart="12dp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+                </RadioGroup>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- EXERCISE TITLE -->
+        <TextView
+            android:text="Добавить упражнение"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:layout_marginTop="24dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+        <!-- EXERCISE CARD -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            app:cardCornerRadius="24dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/card_stroke">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
 
                 <EditText
                     android:id="@+id/etExerciseName"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:hint="Жим штанги"
-                    android:background="@color/background_tertiary"
-                    android:paddingHorizontal="12dp"
-                    android:textColor="@color/text_primary"
-                    android:layout_marginBottom="16dp" />
+                    android:layout_height="56dp"
+                    android:hint="Название упражнения"
+                    android:background="@drawable/bg_input"
+                    android:paddingHorizontal="16dp"/>
+
+                <!-- ДОБАВЬ ЭТО: -->
+                <LinearLayout
+                    android:id="@+id/suggestionsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone"
+                    android:background="@drawable/bg_input"
+                    android:layout_marginTop="4dp"/>
 
                 <!-- SETS + REPS -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:layout_marginTop="12dp">
 
-                    <LinearLayout
+                    <EditText
+                        android:id="@+id/etSets"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginEnd="6dp">
+                        android:hint="Подходы"
+                        android:inputType="number"
+                        android:background="@drawable/bg_input"/>
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="ПОДХОДЫ"
-                            android:textSize="10sp"
-                            android:textColor="@color/text_hint"
-                            android:layout_marginBottom="4dp"/>
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="44dp"
-                            android:background="@color/background_tertiary">
+                    <Space
+                        android:layout_width="8dp"
+                        android:layout_height="1dp"/>
 
-                            <TextView
-                                android:id="@+id/btnDecreaseSets"
-                                android:layout_width="40dp"
-                                android:layout_height="match_parent"
-                                android:text="−"
-                                android:gravity="center" />
-
-                            <TextView
-                                android:id="@+id/tvSetsCount"
-                                android:layout_width="0dp"
-                                android:layout_height="match_parent"
-                                android:layout_weight="1"
-                                android:gravity="center"
-                                android:text="3"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:id="@+id/btnIncreaseSets"
-                                android:layout_width="40dp"
-                                android:layout_height="match_parent"
-                                android:text="+"
-                                android:gravity="center" />
-                        </LinearLayout>
-                    </LinearLayout>
-
-                    <LinearLayout
+                    <EditText
+                        android:id="@+id/etReps"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="56dp"
                         android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginStart="6dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="ПОВТОРЕНИЯ"
-                            android:textSize="10sp"
-                            android:textColor="@color/text_hint"
-                            android:layout_marginBottom="4dp"/>
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="44dp"
-                            android:background="@color/background_tertiary">
-
-                            <TextView
-                                android:id="@+id/btnDecreaseReps"
-                                android:layout_width="40dp"
-                                android:layout_height="match_parent"
-                                android:text="−"
-                                android:gravity="center" />
-
-                            <TextView
-                                android:id="@+id/tvRepsCount"
-                                android:layout_width="0dp"
-                                android:layout_height="match_parent"
-                                android:layout_weight="1"
-                                android:gravity="center"
-                                android:text="10"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:id="@+id/btnIncreaseReps"
-                                android:layout_width="40dp"
-                                android:layout_height="match_parent"
-                                android:text="+"
-                                android:gravity="center" />
-                        </LinearLayout>
-                    </LinearLayout>
+                        android:hint="Повторы"
+                        android:inputType="number"
+                        android:background="@drawable/bg_input"/>
                 </LinearLayout>
 
                 <!-- WEIGHT + REST -->
@@ -198,44 +212,35 @@
                     <EditText
                         android:id="@+id/etWeight"
                         android:layout_width="0dp"
-                        android:layout_height="48dp"
+                        android:layout_height="56dp"
                         android:layout_weight="1"
                         android:hint="Вес (кг)"
-                        android:background="@color/background_tertiary"
-                        android:paddingHorizontal="12dp"
-                        android:textColor="@color/text_primary"
-                        android:layout_marginEnd="6dp" />
+                        android:inputType="number"
+                        android:background="@drawable/bg_input"/>
+
+                    <Space
+                        android:layout_width="8dp"
+                        android:layout_height="1dp"/>
 
                     <EditText
                         android:id="@+id/etRestTime"
                         android:layout_width="0dp"
-                        android:layout_height="48dp"
+                        android:layout_height="56dp"
                         android:layout_weight="1"
                         android:hint="Отдых (сек)"
-                        android:background="@color/background_tertiary"
-                        android:paddingHorizontal="12dp"
-                        android:textColor="@color/text_primary" />
+                        android:inputType="number"
+                        android:background="@drawable/bg_input"/>
                 </LinearLayout>
 
-                <!-- ADD BUTTON -->
                 <Button
                     android:id="@+id/createWorkoutButton"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
+                    android:layout_height="56dp"
                     android:text="Добавить упражнение"
-                    android:backgroundTint="@color/accent_training"
+                    android:textStyle="bold"
                     android:textColor="@color/white"
-                    android:layout_marginTop="12dp" />
-
-                <TextView
-                    android:id="@+id/tvExercisesCount"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="0 упражнений"
-                    android:gravity="center"
-                    android:textSize="12sp"
-                    android:textColor="@color/text_secondary"
-                    android:layout_marginTop="8dp" />
+                    android:backgroundTint="@color/accent_training"
+                    android:layout_marginTop="16dp"/>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -244,18 +249,22 @@
             android:id="@+id/containerExercises"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical" />
+            android:orientation="vertical"
+            android:layout_marginTop="16dp"/>
 
         <!-- SAVE -->
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnCompleteWorkout"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:text="СОХРАНИТЬ"
+            android:layout_height="58dp"
+            android:text="Создать тренировку"
             android:textStyle="bold"
+            android:textSize="16sp"
             android:textColor="@color/white"
-            android:backgroundTint="@color/accent_progress"
-            android:layout_marginTop="16dp" />
+            android:layout_marginTop="24dp"
+            android:backgroundTint="@color/primary"
+            app:cornerRadius="18dp"/>
 
     </LinearLayout>
+
 </androidx.core.widget.NestedScrollView>

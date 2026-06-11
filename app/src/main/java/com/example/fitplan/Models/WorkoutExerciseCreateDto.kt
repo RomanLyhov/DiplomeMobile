@@ -2,12 +2,12 @@ package com.example.fitplan.Models
 
 import com.google.gson.annotations.SerializedName
 
-data class WorkoutExerciseDto(
-    @SerializedName("exerciseId")
-    val exerciseId: Long,
+data class WorkoutExerciseCreateDto(
+    @SerializedName("workoutId")
+    val workoutId: Long,
 
     @SerializedName("name")
-    val name: String = "",
+    val name: String,
 
     @SerializedName("sets")
     val sets: Int,
@@ -19,5 +19,8 @@ data class WorkoutExerciseDto(
     val weight: Float,
 
     @SerializedName("rest")
-    val rest: Int
+    val rest: Int,
+
+    @SerializedName("exerciseId")
+val exerciseId: Long? =null
 )

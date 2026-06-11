@@ -241,11 +241,7 @@ object SyncManager {
                     logFlow("➡️ PUSH WORKOUT ${w.name}")
 
                     val serverId = ApiManager.addWorkout(
-                        WorkoutDto(
-                            id = 0,
-                            userId = serverUserId,
-                            name = w.name
-                        )
+                        WorkoutDto(id = 0, userId = serverUserId, name = w.name)
                     )
 
                     if (serverId != null && serverId > 0L) {

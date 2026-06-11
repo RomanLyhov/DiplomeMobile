@@ -17,6 +17,19 @@
         android:layout_marginTop="20dp"/>
 
     <TextView
+        android:id="@+id/btnHistory"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="📋 История тренировок"
+        android:textSize="14sp"
+        android:textColor="#2196F3"
+        android:gravity="center"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:padding="12dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"/>
+
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Список программ"

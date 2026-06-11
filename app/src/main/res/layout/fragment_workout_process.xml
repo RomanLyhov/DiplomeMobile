@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background_primary"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:background="@color/background_primary">
 
     <Button
         android:id="@+id/btnBack"
@@ -14,17 +15,33 @@
         android:textColor="@color/text_primary"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:padding="16dp" />
+
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:padding="12dp">
 
+        <!-- ОДИН ROOT внутри ScrollView -->
         <LinearLayout
-            android:id="@+id/containerExercises"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical" />
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:id="@+id/containerExercises"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <Button
+                android:id="@+id/btnFinishWorkout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Завершить тренировку" />
+
+        </LinearLayout>
 
     </ScrollView>
 
