@@ -90,11 +90,6 @@ object ApiManager {
 
         }.distinctBy { it.name.lowercase() }
     }
-
-    fun getCachedProductByName(name: String): Product? {
-        return productCache[name.lowercase()]
-    }
-
     fun clearCache() {
         searchCache.clear()
         productCache.clear()
@@ -205,7 +200,27 @@ object ApiManager {
             emptyList()
         }
     }
+    suspend fun getExerciseInitialWeight(userId: Long, exerciseId: Long): Float? {
+        return try {
+            val response = ServerApiClient.apiService.getExerciseInitialWeight(userId, exerciseId)
+            if (response.isSuccessful) {
+                response.body()?.initialWeight
+            } else null
+        } catch (e: Exception) {
+            Log.e("ApiManager", "getExerciseInitialWeight error", e)
+            null
+        }
+    }
 
+    suspend fun saveExerciseProgress(dto: ExerciseProgressDto): Boolean {
+        return try {
+            val response = ServerApiClient.apiService.saveExerciseProgress(dto)
+            response.isSuccessful && response.body()?.success == true
+        } catch (e: Exception) {
+            Log.e("ApiManager", "saveExerciseProgress error", e)
+            false
+        }
+    }
 
 
     // В ApiManager.kt исправьте updateUser:
@@ -379,22 +394,36 @@ object ApiManager {
         }
     }
 
-    suspend fun addWorkoutExercise(dto: WorkoutExerciseCreateDto): Boolean {
+    suspend fun copyWorkout(userId: Long, workoutId: Long): Boolean {
         return try {
+            Log.d("COPY_WORKOUT", "Copying workoutId=$workoutId for userId=$userId")
 
-            val response = serverApi.addWorkoutExercise(dto)
+            val response = ServerApiClient.apiService.copyWorkout(
+                CopyWorkoutDto(userId = userId, workoutId = workoutId)
+            )
 
-            Log.d("API_WORKOUT_EX", "code=${response.code()}")
-            Log.d("API_WORKOUT_EX", "body=${response.body()}")
-            Log.d("API_WORKOUT_EX", "error=${response.errorBody()?.string()}")
+            Log.d("COPY_WORKOUT", "code=${response.code()}")
+            Log.d("COPY_WORKOUT", "body=${response.body()}")
+            Log.d("COPY_WORKOUT", "error=${response.errorBody()?.string()}")
 
             response.isSuccessful && response.body()?.success == true
 
         } catch (e: Exception) {
-            Log.e("ApiManager", "addWorkoutExercise error", e)
+            Log.e("COPY_WORKOUT", "copyWorkout error", e)
             false
         }
     }
+    suspend fun getRecommendedWorkouts(userId: Long): List<WorkoutDto> {
+        return try {
+            val response = ServerApiClient.apiService.getRecommendedWorkouts(userId)
+            if (response.isSuccessful) response.body() ?: emptyList()
+            else emptyList()
+        } catch (e: Exception) {
+            Log.e("ApiManager", "getRecommendedWorkouts error", e)
+            emptyList()
+        }
+    }
+
     suspend fun createExerciseWithWorkout(dto: WorkoutExerciseCreateDto): Boolean {
         return try {
             val response = serverApi.createExerciseWithWorkout(dto)

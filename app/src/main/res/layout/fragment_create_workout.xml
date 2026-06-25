@@ -21,17 +21,17 @@
 
             <ImageButton
                 android:id="@+id/btnBack"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="@drawable/bg_circle_light"
-                android:padding="12dp"
-                android:src="@android:drawable/ic_media_previous"/>
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_media_previous"
+                android:contentDescription="Назад" />
 
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Создание тренировки"
+                android:text="Редактирование тренировки"
                 android:textSize="22sp"
                 android:textStyle="bold"
                 android:gravity="center"
@@ -69,63 +69,6 @@
                     android:background="@drawable/bg_input"
                     android:paddingHorizontal="16dp"/>
 
-                <TextView
-                    android:text="Описание"
-                    android:textStyle="bold"
-                    android:textColor="@color/text_primary"
-                    android:layout_marginTop="16dp"
-                    android:layout_marginBottom="8dp"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"/>
-
-                <EditText
-                    android:id="@+id/etDescription"
-                    android:layout_width="match_parent"
-                    android:layout_height="100dp"
-                    android:gravity="top"
-                    android:hint="Описание тренировки..."
-                    android:background="@drawable/bg_input"
-                    android:padding="16dp"/>
-
-                <TextView
-                    android:text="Сложность"
-                    android:textStyle="bold"
-                    android:textColor="@color/text_primary"
-                    android:layout_marginTop="20dp"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"/>
-
-                <RadioGroup
-                    android:id="@+id/rgDifficulty"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="10dp">
-
-                    <RadioButton
-                        android:id="@+id/rbBeginner"
-                        android:text="Новичок"
-                        android:textColor="@color/text_primary"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"/>
-
-                    <RadioButton
-                        android:id="@+id/rbMedium"
-                        android:text="Средний"
-                        android:textColor="@color/text_primary"
-                        android:layout_marginStart="12dp"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"/>
-
-                    <RadioButton
-                        android:id="@+id/rbHard"
-                        android:text="Сложный"
-                        android:textColor="@color/text_primary"
-                        android:layout_marginStart="12dp"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"/>
-                </RadioGroup>
-
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -162,7 +105,7 @@
                     android:background="@drawable/bg_input"
                     android:paddingHorizontal="16dp"/>
 
-                <!-- ДОБАВЬ ЭТО: -->
+                <!-- Контейнер для подсказок поиска -->
                 <LinearLayout
                     android:id="@+id/suggestionsContainer"
                     android:layout_width="match_parent"
@@ -215,7 +158,7 @@
                         android:layout_height="56dp"
                         android:layout_weight="1"
                         android:hint="Вес (кг)"
-                        android:inputType="number"
+                        android:inputType="numberDecimal"
                         android:background="@drawable/bg_input"/>
 
                     <Space
@@ -223,7 +166,7 @@
                         android:layout_height="1dp"/>
 
                     <EditText
-                        android:id="@+id/etRestTime"
+                        android:id="@+id/etRest"
                         android:layout_width="0dp"
                         android:layout_height="56dp"
                         android:layout_weight="1"
@@ -232,6 +175,7 @@
                         android:background="@drawable/bg_input"/>
                 </LinearLayout>
 
+                <!-- Кнопка добавления/применения упражнения -->
                 <Button
                     android:id="@+id/createWorkoutButton"
                     android:layout_width="match_parent"
@@ -241,23 +185,45 @@
                     android:textColor="@color/white"
                     android:backgroundTint="@color/accent_training"
                     android:layout_marginTop="16dp"/>
+
+                <!-- Кнопка отмены редактирования -->
+                <Button
+                    android:id="@+id/btnCancelEdit"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Отмена"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"
+                    android:backgroundTint="@color/text_secondary"
+                    android:layout_marginTop="8dp"
+                    android:visibility="gone"/>
+
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- LIST -->
+        <!-- СПИСОК УПРАЖНЕНИЙ -->
+        <TextView
+            android:text="Упражнения тренировки"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="8dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
         <LinearLayout
             android:id="@+id/containerExercises"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginTop="16dp"/>
+            android:orientation="vertical"/>
 
-        <!-- SAVE -->
+        <!-- КНОПКА СОХРАНЕНИЯ -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnCompleteWorkout"
             android:layout_width="match_parent"
             android:layout_height="58dp"
-            android:text="Создать тренировку"
+            android:text="Сохранить изменения"
             android:textStyle="bold"
             android:textSize="16sp"
             android:textColor="@color/white"

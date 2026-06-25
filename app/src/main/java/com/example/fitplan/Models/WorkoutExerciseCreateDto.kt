@@ -22,5 +22,5 @@ data class WorkoutExerciseCreateDto(
     val rest: Int,
 
     @SerializedName("exerciseId")
-val exerciseId: Long? =null
+    val exerciseId: Long? = null
 )

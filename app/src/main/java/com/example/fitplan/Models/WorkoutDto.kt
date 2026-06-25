@@ -13,5 +13,12 @@ data class WorkoutDto(
     val name: String,
 
     @SerializedName("createdAt")
-    val createdAt: String? = null
+    val createdAt: String? = null,
+
+    @SerializedName("isRecommended")
+    val isRecommended: Boolean = false,
+
+    @SerializedName("exercises")
+    val exercises: List<WorkoutExerciseDto> = emptyList()
+
 )

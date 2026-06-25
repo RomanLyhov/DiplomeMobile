@@ -1,5 +1,6 @@
 package com.example.fitplan.ui
 
+import android.app.DatePickerDialog
 import android.content.Context
 import android.os.Bundle
 import android.util.Log
@@ -91,9 +92,12 @@ class NutritionFragment : Fragment() {
         totalCarbsTextView = view.findViewById(R.id.totalCarbsTextView)
         dailyGoalTextView = view.findViewById(R.id.dailyGoalTextView)
         dateTextView = view.findViewById(R.id.dateTextView)
-
-        // ДОБАВЛЕНО: инициализация календаря
         weekCalendarLayout = view.findViewById(R.id.weekCalendarLayout)
+
+        // Клик по дате открывает календарь
+        dateTextView.setOnClickListener {
+            showDatePickerDialog()
+        }
 
         dailyGoalTextView.text = "$dailyGoal ккал"
         val currentDate = getCurrentDateFormatted()
@@ -103,6 +107,59 @@ class NutritionFragment : Fragment() {
     private fun setupWeekCalendar() {
         currentWeekDays = getCurrentWeekDays()
         updateWeekCalendar()
+    }
+    private fun showDatePickerDialog() {
+        val calendar = Calendar.getInstance()
+        DatePickerDialog(
+            requireContext(),
+            { _, year, month, dayOfMonth ->
+                val selectedCal = Calendar.getInstance().apply {
+                    set(year, month, dayOfMonth, 0, 0, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                val dateFormat = SimpleDateFormat("d MMMM yyyy", Locale("ru"))
+                dateTextView.text = dateFormat.format(selectedCal.time)
+                selectedDate = selectedCal.time
+                loadMealsForDateAsync(selectedCal.time)
+                updateWeekCalendarSelection(selectedCal.time)
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        ).show()
+    }
+
+    private fun updateWeekCalendarSelection(date: Date) {
+        val selectedCal = Calendar.getInstance().apply {
+            time = date
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+
+        for (i in 0 until weekCalendarLayout.childCount) {
+            val dayView = weekCalendarLayout.getChildAt(i)
+            val dayNumberTextView = dayView.findViewById<TextView>(R.id.dayNumberTextView)
+
+            // Получаем дату для этого дня
+            val dayDate = currentWeekDays.getOrNull(i) ?: continue
+            val dayCal = Calendar.getInstance().apply {
+                time = dayDate
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+
+            if (dayCal.timeInMillis == selectedCal.timeInMillis) {
+                dayNumberTextView.setBackgroundResource(R.drawable.bg_day_circle_selected)
+                dayNumberTextView.setTextColor(resources.getColor(android.R.color.white, null))
+            } else {
+                dayNumberTextView.setBackgroundResource(R.drawable.bg_day_circle)
+                dayNumberTextView.setTextColor(resources.getColor(R.color.text_primary, null))
+            }
+        }
     }
 
     private fun getCurrentWeekDays(): List<Date> {
@@ -396,6 +453,7 @@ class NutritionFragment : Fragment() {
         val year = calendar.get(Calendar.YEAR)
         return "$day.$month.$year"
     }
+
 
     private fun checkAndCleanupOldData() {
         viewLifecycleOwner.lifecycleScope.launch {

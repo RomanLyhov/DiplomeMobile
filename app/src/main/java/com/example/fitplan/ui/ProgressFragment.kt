@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.cardview.widget.CardView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.fitplan.Models.Api.ApiManager
@@ -22,9 +23,7 @@ class ProgressFragment : Fragment() {
 
     private lateinit var tvWorkoutCount: TextView
     private lateinit var tvMaxWeight: TextView
-
     private lateinit var containerRecords: LinearLayout
-    private lateinit var containerAchievements: LinearLayout
 
     private var userId: Long = -1L
 
@@ -34,17 +33,11 @@ class ProgressFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
 
-        val view =
-            inflater.inflate(R.layout.fragment_progress, container, false)
+        val view = inflater.inflate(R.layout.fragment_progress, container, false)
 
-        tvWorkoutCount =
-            view.findViewById(R.id.tvWorkoutCount)
-
-        tvMaxWeight =
-            view.findViewById(R.id.tvMaxWeight)
-
-        containerRecords =
-            view.findViewById(R.id.containerRecords)
+        tvWorkoutCount = view.findViewById(R.id.tvWorkoutCount)
+        tvMaxWeight = view.findViewById(R.id.tvMaxWeight)
+        containerRecords = view.findViewById(R.id.containerRecords)
 
         return view
     }
@@ -77,23 +70,22 @@ class ProgressFragment : Fragment() {
             try {
 
                 val data = withContext(Dispatchers.IO) {
-
                     ApiManager.getWorkoutsFullClient(userId)
-
                 }
 
-                Log.d("PROGRESS", "DATA = $data")
+                Log.d("PROGRESS", "DATA size = ${data.size}")
+
+                // Очищаем контейнер перед загрузкой
+                containerRecords.removeAllViews()
 
                 if (data.isEmpty()) {
-
                     tvWorkoutCount.text = "0"
                     tvMaxWeight.text = "0 кг"
-
+                    showEmptyState()
                     return@launch
                 }
 
-                val allExercises =
-                    data.flatMap { it.second }
+                val allExercises = data.flatMap { it.second }
 
                 updateStatistics(
                     workoutsCount = data.size,
@@ -102,131 +94,120 @@ class ProgressFragment : Fragment() {
 
                 showRecords(allExercises)
 
-                showAchievements(
-                    workoutsCount = data.size,
-                    exercises = allExercises
-                )
-
             } catch (e: Exception) {
 
                 Log.e("PROGRESS_ERROR", "ERROR", e)
 
+                // Очищаем контейнер при ошибке
+                containerRecords.removeAllViews()
+
+                val errorMsg = when {
+                    e.message?.contains("SocketTimeoutException") == true ->
+                        "Таймаут соединения"
+                    e.message?.contains("UnknownHostException") == true ->
+                        "Нет интернета"
+                    else ->
+                        "Ошибка: ${e.message}"
+                }
+
+                // Показываем ошибку в контейнере рекордов
+                val tvError = TextView(requireContext()).apply {
+                    text = "$errorMsg\n\nПопробуйте обновить страницу"
+                    textSize = 16f
+                    gravity = android.view.Gravity.CENTER
+                    setPadding(0, 40, 0, 40)
+                    setTextColor(resources.getColor(android.R.color.holo_red_dark))
+                }
+                containerRecords.addView(tvError)
+
                 Toast.makeText(
                     requireContext(),
-                    "Ошибка загрузки прогресса",
+                    "Ошибка загрузки: $errorMsg",
                     Toast.LENGTH_LONG
                 ).show()
             }
         }
     }
 
+    private fun showEmptyState() {
+        containerRecords.removeAllViews()
+
+        val tvEmpty = TextView(requireContext()).apply {
+            text = "Нет данных о тренировках\n\nНачните тренироваться, чтобы видеть свой прогресс!"
+            textSize = 16f
+            gravity = android.view.Gravity.CENTER
+            setPadding(0, 40, 0, 40)
+            setTextColor(resources.getColor(android.R.color.darker_gray))
+        }
+        containerRecords.addView(tvEmpty)
+    }
+
     private fun updateStatistics(
         workoutsCount: Int,
         exercises: List<WorkoutExerciseDto>
     ) {
+        tvWorkoutCount.text = workoutsCount.toString()
 
-        tvWorkoutCount.text =
-            workoutsCount.toString()
-
-        val maxWeight =
-            exercises.maxOfOrNull { it.weight } ?: 0f
-
-        tvMaxWeight.text =
-            "$maxWeight кг"
+        val maxWeight = exercises.maxOfOrNull { it.weight } ?: 0f
+        tvMaxWeight.text = "${maxWeight.toInt()} кг"
     }
 
-    private fun showRecords(
-        exercises: List<WorkoutExerciseDto>
-    ) {
-
+    private fun showRecords(exercises: List<WorkoutExerciseDto>) {
         containerRecords.removeAllViews()
 
+        // Группируем по exerciseId
         val grouped = exercises.groupBy { it.exerciseId }
 
-        grouped.forEach { (exerciseId, list) ->
+        if (grouped.isEmpty()) {
+            val tvEmpty = TextView(requireContext()).apply {
+                text = "📭 Нет записей упражнений"
+                textSize = 16f
+                gravity = android.view.Gravity.CENTER
+                setPadding(0, 20, 0, 20)
+                setTextColor(resources.getColor(android.R.color.darker_gray))
+            }
+            containerRecords.addView(tvEmpty)
+            return
+        }
 
-            val card = layoutInflater.inflate(
-                R.layout.record_item,
+        // Сортируем по названию упражнения (для красоты)
+        val sortedEntries = grouped.entries.sortedBy { it.key }
+
+        sortedEntries.forEach { (exerciseId, list) ->
+
+            // Создаем карточку для каждого упражнения
+            val cardView = layoutInflater.inflate(
+                R.layout.item_record_card,
                 containerRecords,
                 false
-            )
+            ) as CardView
 
-            val tvExerciseName = card.findViewById<TextView>(R.id.tvExerciseName)
-            val tvRecordWeight = card.findViewById<TextView>(R.id.tvRecordWeight)
-            val tvRecordReps = card.findViewById<TextView>(R.id.tvRecordReps)
+            val tvExerciseName = cardView.findViewById<TextView>(R.id.tvExerciseName)
+            val tvRecordWeight = cardView.findViewById<TextView>(R.id.tvRecordWeight)
+            val tvRecordReps = cardView.findViewById<TextView>(R.id.tvRecordReps)
 
-            // значения рекордов
+            // Получаем рекорды
             val maxWeight = list.maxOfOrNull { it.weight } ?: 0f
             val maxReps = list.maxOfOrNull { it.reps } ?: 0
+            val totalSets = list.sumOf { it.sets }
 
-            tvRecordWeight.text = "Рекорд веса: $maxWeight кг"
-            tvRecordReps.text = "Макс повторений: $maxReps"
+            // Показываем временное имя
+            tvExerciseName.text = "Загрузка..."
+            tvRecordWeight.text = " Рекорд веса: ${maxWeight.toInt()} кг"
+            tvRecordReps.text = "Макс повторений: $maxReps (всего подходов: $totalSets)"
 
-            // получаем имя упражнения
+            // Загружаем имя асинхронно
             lifecycleScope.launch {
-                val name = ApiManager.getExerciseName(exerciseId)
-                tvExerciseName.text = name
+                try {
+                    val name = ApiManager.getExerciseName(exerciseId)
+                    tvExerciseName.text = name
+                } catch (e: Exception) {
+                    Log.e("PROGRESS", "Error loading exercise name", e)
+                    tvExerciseName.text = "Упражнение #$exerciseId"
+                }
             }
 
-            containerRecords.addView(card)
-        }
-    }
-
-    private fun showAchievements(
-        workoutsCount: Int,
-        exercises: List<WorkoutExerciseDto>
-    ) {
-
-        containerAchievements.removeAllViews()
-
-        val achievements =
-            mutableListOf<String>()
-
-        if (workoutsCount >= 1) {
-            achievements.add(" Первая тренировка")
-        }
-
-        if (workoutsCount >= 10) {
-            achievements.add(" 10 тренировок")
-        }
-
-        if (workoutsCount >= 25) {
-            achievements.add(" 25 тренировок")
-        }
-
-        val maxWeight =
-            exercises.maxOfOrNull { it.weight } ?: 0f
-        if (maxWeight >= 50) {
-            achievements.add(" Поднял 50 кг")
-        }
-
-        if (maxWeight >= 100) {
-            achievements.add(" Поднял 100 кг")
-        }
-
-        if (exercises.size >= 50) {
-            achievements.add(
-                "⚡ Выполнено 50 упражнений"
-            )
-        }
-
-        achievements.forEach {
-
-            val tv = TextView(
-                requireContext()
-            )
-
-            tv.text = it
-            tv.textSize = 16f
-            tv.setPadding(
-                0,
-                12,
-                0,
-                12
-            )
-
-            containerAchievements
-                .addView(tv)
+            containerRecords.addView(cardView)
         }
     }
 }

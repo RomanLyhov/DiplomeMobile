@@ -19,6 +19,7 @@ import com.example.fitplan.Models.Api.ServerApiClient
 import com.example.fitplan.Models.Api.WorkoutHistoryDto
 import com.example.fitplan.R
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -30,9 +31,9 @@ class WorkoutHistoryFragment : Fragment() {
     private lateinit var tvSelectedDate: TextView
     private var selectedDate: Calendar = Calendar.getInstance()
     private var allHistory: List<WorkoutHistoryDto> = emptyList()
+    private var loadJob: Job? = null
 
     private val dateFormat = SimpleDateFormat("d MMMM yyyy", Locale("ru"))
-    private val dayFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
     @SuppressLint("MissingInflatedId")
     override fun onCreateView(
@@ -54,10 +55,13 @@ class WorkoutHistoryFragment : Fragment() {
             showDatePicker()
         }
 
-        // Загружаем всю историю
-        loadAllHistory()
-
         return view
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        // Загружаем данные только один раз при создании view
+        loadAllHistory()
     }
 
     private fun showDatePicker() {
@@ -80,6 +84,9 @@ class WorkoutHistoryFragment : Fragment() {
     }
 
     private fun loadAllHistory() {
+        // Отменяем предыдущую загрузку
+        loadJob?.cancel()
+
         val userId = requireContext()
             .getSharedPreferences("session", 0)
             .getLong("server_user_id", -1L)
@@ -100,10 +107,11 @@ class WorkoutHistoryFragment : Fragment() {
         }
         containerHistory.addView(loadingView)
 
-        lifecycleScope.launch {
+        loadJob = lifecycleScope.launch {
             try {
+                Log.d("HISTORY", "Starting to load history for userId: $userId")
+
                 allHistory = withContext(Dispatchers.IO) {
-                    // Явно передаем null для параметров даты
                     val response = ServerApiClient.apiService.getWorkoutHistory(
                         userId = userId,
                         startDate = null,
@@ -112,8 +120,8 @@ class WorkoutHistoryFragment : Fragment() {
                     if (response.isSuccessful) {
                         val data = response.body() ?: emptyList()
                         Log.d("HISTORY", "Loaded ${data.size} records from server")
-                        data.forEach { record ->
-                            Log.d("HISTORY", "Record: ${record.workoutName}, date: ${record.completedAt}, fully: ${record.isFullyDone}")
+                        data.forEachIndexed { index, record ->
+                            Log.d("HISTORY", "Record $index: name='${record.workoutName}', date=${record.completedAt}, fully=${record.isFullyDone}")
                         }
                         data
                     } else {
@@ -122,9 +130,17 @@ class WorkoutHistoryFragment : Fragment() {
                     }
                 }
 
-                // Обновляем отображение
+                // Обновляем отображение даты
                 updateDisplayedDate()
-                filterHistoryByDate()
+
+                // Показываем данные
+                if (allHistory.isNotEmpty()) {
+                    Log.d("HISTORY", "Showing ${allHistory.size} records")
+                    displayHistory(allHistory) // Показываем все записи сразу
+                } else {
+                    Log.d("HISTORY", "No records found")
+                    displayHistory(emptyList())
+                }
 
             } catch (e: Exception) {
                 Log.e("HISTORY", "Error loading history", e)
@@ -144,12 +160,17 @@ class WorkoutHistoryFragment : Fragment() {
     private fun filterHistoryByDate() {
         // Получаем начало и конец выбранного дня в миллисекундах
         val startOfDay = selectedDate.timeInMillis
-        val endOfDay = startOfDay + (24 * 60 * 60 * 1000) // +1 день
+        val endOfDay = startOfDay + (24 * 60 * 60 * 1000)
+
+        Log.d("HISTORY", "Filtering by date: start=$startOfDay, end=$endOfDay")
+        Log.d("HISTORY", "Total records: ${allHistory.size}")
 
         // Фильтруем историю по выбранной дате
         val filteredHistory = allHistory.filter { history ->
             history.completedAt in startOfDay until endOfDay
         }
+
+        Log.d("HISTORY", "Filtered records: ${filteredHistory.size}")
 
         // Отображаем отфильтрованные данные
         displayHistory(filteredHistory)
@@ -158,9 +179,15 @@ class WorkoutHistoryFragment : Fragment() {
     private fun displayHistory(history: List<WorkoutHistoryDto>) {
         containerHistory.removeAllViews()
 
+        Log.d("HISTORY", "displayHistory called with ${history.size} records")
+
         if (history.isEmpty()) {
             val emptyView = TextView(requireContext()).apply {
-                text = "Нет тренировок за ${dateFormat.format(selectedDate.time)}"
+                text = if (allHistory.isEmpty()) {
+                    "Нет завершённых тренировок\n\nВыполните тренировку, чтобы она появилась здесь"
+                } else {
+                    "Нет тренировок за ${dateFormat.format(selectedDate.time)}"
+                }
                 textSize = 14f
                 setTextColor(Color.GRAY)
                 gravity = android.view.Gravity.CENTER
@@ -180,7 +207,6 @@ class WorkoutHistoryFragment : Fragment() {
     }
 
     private fun addHistoryCard(history: WorkoutHistoryDto) {
-
         val card = layoutInflater.inflate(
             R.layout.item_workout_history_card,
             containerHistory,
@@ -194,7 +220,7 @@ class WorkoutHistoryFragment : Fragment() {
         val tvPercent = card.findViewById<TextView>(R.id.tvPercent)
         val progress = card.findViewById<ProgressBar>(R.id.progress)
 
-        tvName.text = history.workoutName
+        tvName.text = history.workoutName.ifEmpty { "Тренировка" }
 
         val timeFormat = SimpleDateFormat("HH:mm", Locale("ru"))
         tvTime.text = timeFormat.format(Date(history.completedAt))
@@ -206,8 +232,7 @@ class WorkoutHistoryFragment : Fragment() {
         progress.progress = percent
         tvPercent.text = "$percent%"
 
-        tvExercises.text =
-            "Упражнения: ${history.completedExercises}/${history.totalExercises}"
+        tvExercises.text = "Упражнения: ${history.completedExercises}/${history.totalExercises}"
 
         if (history.isFullyDone) {
             tvStatus.text = "✔ Выполнено полностью"
@@ -221,7 +246,6 @@ class WorkoutHistoryFragment : Fragment() {
     }
 
     private fun addDailyStatsCard(history: List<WorkoutHistoryDto>) {
-
         val card = layoutInflater.inflate(
             R.layout.item_daily_stats_card,
             containerHistory,
@@ -251,5 +275,10 @@ class WorkoutHistoryFragment : Fragment() {
         progress.progress = percent
 
         containerHistory.addView(card)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        loadJob?.cancel()
     }
 }

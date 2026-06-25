@@ -106,4 +106,22 @@ interface ServerApiService {
         @Query("startDate") startDate: Long? = null,
         @Query("endDate") endDate: Long? = null
     ): Response<List<WorkoutHistoryDto>>
+    @GET("workouts/recommended")
+    suspend fun getRecommendedWorkouts(
+        @Query("userId") userId: Long
+    ): Response<List<WorkoutDto>>
+    @POST("workouts/copy")
+    suspend fun copyWorkout(@Body body: CopyWorkoutDto): Response<ServerResponse>
+
+    @GET("progress/exercise/initial/{userId}")
+    suspend fun getExerciseInitialWeight(
+        @Path("userId") userId: Long,
+        @Query("exerciseId") exerciseId: Long
+    ): Response<InitialWeightResponse>
+
+    // Добавьте метод для сохранения прогресса
+    @POST("progress/exercise")
+    suspend fun saveExerciseProgress(
+        @Body dto: ExerciseProgressDto
+    ): Response<ServerResponse>
 }

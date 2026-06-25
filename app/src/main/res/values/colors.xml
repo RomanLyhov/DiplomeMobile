@@ -91,4 +91,7 @@
     <color name="training_shadow">#12000000</color>
 
     <color name="danger">#FFFF5252</color>
+
+    <color name="green">#22C55E</color>
+    <color name="red">#EF4444</color>
 </resources>

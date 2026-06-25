@@ -70,106 +70,65 @@ class AddMealFragment : Fragment() {
     }
 
     private fun setupListeners() {
+        // ===== TextWatcher для поиска продукта =====
         productSearch.addTextChangedListener(object : TextWatcher {
 
             override fun afterTextChanged(s: Editable?) {
-
                 val query = s.toString().trim()
-
                 lastQuery = query
 
                 // Отменяем прошлый поиск
                 searchJob?.cancel()
 
                 if (query.length < 2) {
-
                     adapter.clear()
                     adapter.notifyDataSetChanged()
-
                     selectedProduct = null
                     recalcNutrition()
-
                     searchProgress.visibility = View.GONE
                     return
                 }
 
                 searchJob = viewLifecycleOwner.lifecycleScope.launch {
-
                     delay(500) // ждём пока пользователь перестанет печатать
-
                     if (!isActive) return@launch
-
                     startSearch(query)
                 }
             }
 
-            override fun beforeTextChanged(
-                s: CharSequence?,
-                start: Int,
-                count: Int,
-                after: Int
-            ) {}
-
-            override fun onTextChanged(
-                s: CharSequence?,
-                start: Int,
-                before: Int,
-                count: Int
-            ) {}
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
         })
 
+        // ===== Обработчик выбора продукта из списка =====
         productSearch.setOnItemClickListener { _, _, position, _ ->
-
             val name = adapter.getItem(position) ?: return@setOnItemClickListener
-
             selectedProduct = currentProducts.firstOrNull {
                 it.name.equals(name, ignoreCase = true) ||
                         it.name.contains(name, ignoreCase = true) ||
                         name.contains(it.name, ignoreCase = true)
             }
-
             Log.d("FOOD_SEARCH", "SELECTED = ${selectedProduct?.name}")
-
             recalcNutrition()
         }
 
-
+        // ===== TextWatcher для количества (ТОЛЬКО ПЕРЕСЧЕТ!) =====
         quantityEdit.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
-
-                val query = s.toString().trim()
-                lastQuery = query
-
-                searchJob?.cancel()
-
-                if (query.length < 2) {
-                    adapter.clear()
-                    adapter.notifyDataSetChanged()
-
-                    selectedProduct = null
-                    recalcNutrition()
-
-                    searchProgress.visibility = View.GONE
-                    return
-                }
-
-                searchJob = viewLifecycleOwner.lifecycleScope.launch {
-
-                    delay(250) // быстрее и без лагов
-
-                    if (!isActive) return@launch
-
-                    startSearch(query)
-                }
+                // 🔥 ВОТ ЗДЕСЬ БЫЛА ОШИБКА - теперь просто пересчитываем
+                recalcNutrition()
             }
+
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
         })
 
+        // ===== Кнопка "Добавить" =====
         btnAdd.setOnClickListener {
             addProductToMeal()
         }
 
+        // ===== Кнопка "Отмена" =====
         btnCancel.setOnClickListener {
             searchJob?.cancel()
             parentFragmentManager.popBackStack()
@@ -398,8 +357,16 @@ class AddMealFragment : Fragment() {
 
     private fun recalcNutrition() {
         val product = selectedProduct
-        val quantity = quantityEdit.text.toString().toIntOrNull() ?: 100
-        val factor = if (quantity > 0) quantity / 100f else 0f
+
+        // 🔥 БЕЗОПАСНОЕ ПОЛУЧЕНИЕ КОЛИЧЕСТВА
+        val quantityText = quantityEdit.text.toString().trim()
+        val quantity = if (quantityText.isEmpty()) {
+            100 // если поле пустое - используем 100 грамм
+        } else {
+            quantityText.toIntOrNull() ?: 100
+        }
+
+        val factor = quantity / 100f
 
         val calories = ((product?.calories ?: 0f) * factor).toInt()
         val protein = ((product?.protein ?: 0f) * factor).toInt()
@@ -410,12 +377,6 @@ class AddMealFragment : Fragment() {
         proteinTv.text = "$protein г"
         fatTv.text = "$fat г"
         carbsTv.text = "$carbs г"
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        searchJob?.cancel()
-        searchJob = null
     }
 
     companion object {

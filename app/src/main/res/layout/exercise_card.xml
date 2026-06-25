@@ -10,28 +10,71 @@
     android:padding="20dp"
     android:elevation="4dp"
     android:outlineProvider="background"
-    android:clipToOutline="true"
-    android:radius="16dp">
+    android:clipToOutline="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginBottom="16dp">
+        android:layout_marginBottom="12dp">
 
-        <TextView
-            android:id="@+id/tvExerciseName"
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Жим штанги лежа"
-            android:textSize="18sp"
-            android:textColor="@color/text_primary"
-            android:textStyle="bold"
-            android:maxLines="1"
-            android:ellipsize="end" />
+            android:orientation="vertical">
 
+            <TextView
+                android:id="@+id/tvExerciseName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Жим штанги лежа"
+                android:textSize="18sp"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <!-- Индикатор начального веса -->
+            <TextView
+                android:id="@+id/tvInitialWeightBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🏁 Начальный: 60 кг"
+                android:textSize="11sp"
+                android:textColor="@color/accent_training"
+                android:visibility="gone"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+
+        <!-- Кнопка "Добавить прогресс" -->
+        <TextView
+            android:id="@+id/btnAddProgress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📈"
+            android:textSize="18sp"
+            android:padding="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginEnd="8dp"
+            android:visibility="gone" />
+
+        <!-- Кнопка редактирования -->
+        <TextView
+            android:id="@+id/btnEditExercise"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✎"
+            android:textSize="18sp"
+            android:textColor="@color/accent_training"
+            android:padding="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginEnd="8dp" />
+
+        <!-- Кнопка удаления -->
         <TextView
             android:id="@+id/btnRemoveExercise"
             android:layout_width="wrap_content"
@@ -41,8 +84,7 @@
             android:textColor="@color/text_secondary"
             android:padding="8dp"
             android:clickable="true"
-            android:focusable="true"
-            android:visibility="gone" />
+            android:focusable="true" />
     </LinearLayout>
 
     <LinearLayout
@@ -136,10 +178,17 @@
                 android:id="@+id/tvWeight"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="60 кг"
+                android:text="60"
                 android:textSize="20sp"
                 android:textColor="@color/text_primary"
                 android:layout_marginTop="6dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="кг"
+                android:textSize="10sp"
+                android:textColor="@color/text_hint" />
         </LinearLayout>
 
         <View
@@ -168,10 +217,19 @@
                 android:id="@+id/tvRest"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="90 сек"
+                android:text="90"
                 android:textSize="20sp"
                 android:textColor="@color/text_primary"
                 android:layout_marginTop="6dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="сек"
+                android:textSize="10sp"
+                android:textColor="@color/text_hint" />
         </LinearLayout>
+
     </LinearLayout>
+
 </LinearLayout>

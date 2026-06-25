@@ -1,5 +1,7 @@
 package com.example.fitplan.Models
 
+import java.io.Serializable
+
 data class Exercise(
     val id: Long = 0,
     val name: String,
@@ -7,5 +9,7 @@ data class Exercise(
     val reps: Int,
     val weight: Float,
     val rest: Int,
-    val description: String = ""
-)
+    val description: String = "",
+    val initialWeight: Float? = null,
+    val isInitial: Boolean = false
+): Serializable

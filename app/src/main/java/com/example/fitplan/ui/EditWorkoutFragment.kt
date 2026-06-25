@@ -7,6 +7,7 @@ import android.widget.*
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.fitplan.Models.Api.ApiManager
+import com.example.fitplan.Models.Api.ExerciseProgressDto
 import com.example.fitplan.Models.Api.ServerApiClient
 import com.example.fitplan.Models.Exercise
 import com.example.fitplan.Models.WorkoutDto
@@ -22,15 +23,22 @@ class EditWorkoutFragment : Fragment() {
     private var workoutName: String = ""
     private val exercises = mutableListOf<Exercise>()
 
+    // Индекс упражнения, которое сейчас редактируется (-1 = никакое)
+    private var editingIndex: Int = -1
+
     private lateinit var container: LinearLayout
     private lateinit var etWorkoutName: EditText
     private lateinit var etExerciseName: EditText
     private lateinit var etSets: EditText
     private lateinit var etReps: EditText
+    private lateinit var etRest: EditText
     private lateinit var etWeight: EditText
     private var selectedExerciseId: Long? = null
     private lateinit var suggestionsContainer: LinearLayout
     private var searchJob: kotlinx.coroutines.Job? = null
+
+    // Кнопка добавления упражнения — меняем её текст при редактировании
+    private lateinit var btnAddExercise: Button
 
     companion object {
         fun newInstance(workoutId: Long, workoutName: String): EditWorkoutFragment {
@@ -57,19 +65,27 @@ class EditWorkoutFragment : Fragment() {
         etExerciseName = view.findViewById(R.id.etExerciseName)
         etSets = view.findViewById(R.id.etSets)
         etReps = view.findViewById(R.id.etReps)
+        etRest = view.findViewById(R.id.etRest)
         etWeight = view.findViewById(R.id.etWeight)
         suggestionsContainer = view.findViewById(R.id.suggestionsContainer)
         this.container = view.findViewById(R.id.containerExercises)
+        btnAddExercise = view.findViewById(R.id.createWorkoutButton)
 
-
-
-        // Заполняем название
         etWorkoutName.setText(workoutName)
 
         setupExerciseSearch()
 
-        view.findViewById<Button>(R.id.createWorkoutButton).setOnClickListener {
-            addExercise()
+        btnAddExercise.setOnClickListener {
+            if (editingIndex >= 0) {
+                applyEdit()       // сохраняем правку существующего
+            } else {
+                addExercise()     // добавляем новое
+            }
+        }
+
+        // Кнопка «Отмена» редактирования — появляется рядом с кнопкой добавления
+        view.findViewById<Button?>(R.id.btnCancelEdit)?.setOnClickListener {
+            cancelEdit()
         }
 
         view.findViewById<Button>(R.id.btnCompleteWorkout).apply {
@@ -77,11 +93,14 @@ class EditWorkoutFragment : Fragment() {
             setOnClickListener { saveChanges() }
         }
 
-        // Загружаем существующие упражнения
         loadExistingExercises()
 
         return view
     }
+
+    // ─────────────────────────────────────────────
+    // Загрузка упражнений с сервера
+    // ─────────────────────────────────────────────
 
     private fun loadExistingExercises() {
         lifecycleScope.launch(Dispatchers.IO) {
@@ -109,45 +128,113 @@ class EditWorkoutFragment : Fragment() {
         }
     }
 
+    // ─────────────────────────────────────────────
+    // Добавление нового упражнения
+    // ─────────────────────────────────────────────
+
     private fun addExercise() {
         val name = etExerciseName.text.toString().trim()
         if (name.isEmpty()) { toast("Введите упражнение"); return }
 
-        val ex = Exercise(
-            id = selectedExerciseId ?: 0,  // используем id из поиска
+        val sets = etSets.text.toString().toIntOrNull() ?: 3
+        val reps = etReps.text.toString().toIntOrNull() ?: 10
+        val weight = etWeight.text.toString().toFloatOrNull() ?: 0f
+        val rest = etRest.text.toString().toIntOrNull() ?: 90  // ← ЧИТАЕМ ИЗ ПОЛЯ
+
+        exercises.add(
+            Exercise(
+                id = selectedExerciseId ?: 0,
+                name = name,
+                sets = sets,
+                reps = reps,
+                weight = weight,
+                rest = rest
+            )
+        )
+        selectedExerciseId = null
+        clearInputFields()
+        render()
+    }
+
+    private fun startEditing(index: Int) {
+        val ex = exercises[index]
+        editingIndex = index
+
+        etExerciseName.setText(ex.name)
+        etSets.setText(ex.sets.toString())
+        etReps.setText(ex.reps.toString())
+        etWeight.setText(if (ex.weight > 0) ex.weight.toString() else "")
+        etRest.setText(ex.rest.toString())
+        selectedExerciseId = if (ex.id > 0) ex.id else null
+
+        btnAddExercise.text = "Применить"
+
+        // Прокручиваем к форме (если layout завёрнут в ScrollView)
+        etExerciseName.requestFocus()
+
+        render() // перерисовываем карточки, чтобы выделить редактируемую
+    }
+
+    /** Сохраняем изменения в объект списка и выходим из режима редактирования. */
+    private fun applyEdit() {
+        val name = etExerciseName.text.toString().trim()
+        if (name.isEmpty()) { toast("Введите название упражнения"); return }
+
+        exercises[editingIndex] = Exercise(
+            id = selectedExerciseId ?: exercises[editingIndex].id,
             name = name,
             sets = etSets.text.toString().toIntOrNull() ?: 3,
             reps = etReps.text.toString().toIntOrNull() ?: 10,
             weight = etWeight.text.toString().toFloatOrNull() ?: 0f,
-            rest = 90
+            rest = etRest.text.toString().toIntOrNull() ?: 90
         )
-        selectedExerciseId = null  // сбрасываем
-        exercises.add(ex)
-        render()
 
-        etExerciseName.text.clear()
-        etSets.setText("")
-        etReps.setText("")
-        etWeight.setText("")
+        editingIndex = -1
+        selectedExerciseId = null
+        btnAddExercise.text = "Добавить упражнение"
+        clearInputFields()
+        render()
     }
 
+    /** Отменяем редактирование без сохранения. */
+    private fun cancelEdit() {
+        editingIndex = -1
+        selectedExerciseId = null
+        btnAddExercise.text = "Добавить упражнение"
+        clearInputFields()
+        render()
+    }
+
+    // ─────────────────────────────────────────────
+    // Сохранение тренировки на сервер
+    // ─────────────────────────────────────────────
+
     private fun saveChanges() {
+        if (editingIndex >= 0) applyEdit()
+
         val name = etWorkoutName.text.toString().trim()
         if (name.isEmpty()) { toast("Введите название"); return }
         if (exercises.isEmpty()) { toast("Добавьте упражнения"); return }
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
+                val userId = getUserId()
+
                 // 1. Обновляем название тренировки
                 ServerApiClient.apiService.updateWorkout(
                     workoutId,
                     WorkoutDto(id = workoutId, userId = 0, name = name)
                 )
 
-                // 2. Удаляем старые упражнения через DELETE /workouts/:id/exercises
+                // 2. Получаем ТЕКУЩИЕ упражнения с сервера (ДО изменения)
+                val currentExercises = ApiManager.getExercises(workoutId)
+                val currentWeightMap = currentExercises.associate { it.exerciseId to it.weight }
+                val currentExerciseIds = currentExercises.map { it.exerciseId }.toSet()
+
+                // 3. Удаляем старые упражнения
                 ServerApiClient.apiService.deleteWorkoutExercises(workoutId)
 
-                // 3. Добавляем новые
+                // 4. Записываем обновлённый список
                 exercises.forEach { ex ->
                     val dto = WorkoutExerciseCreateDto(
                         workoutId = workoutId,
@@ -159,6 +246,46 @@ class EditWorkoutFragment : Fragment() {
                         rest = ex.rest
                     )
                     ApiManager.createExerciseWithWorkout(dto)
+
+                    // === ЛОГИКА СОХРАНЕНИЯ ПРОГРЕССА ===
+                    if (ex.weight > 0) {
+                        // Проверяем, есть ли уже начальный вес для этого упражнения
+                        val initialWeight = ApiManager.getExerciseInitialWeight(userId, ex.id)
+
+                        if (initialWeight == null || initialWeight == 0f) {
+                            // НЕТ начального веса → сохраняем как начальный
+                            val progressDto = ExerciseProgressDto(
+                                userId = userId,
+                                exerciseId = ex.id,
+                                workoutId = workoutId,
+                                weight = ex.weight,
+                                reps = ex.reps,
+                                sets = ex.sets,
+                                notes = "🏁 Начальный вес (зафиксирован)"
+                            )
+                            ApiManager.saveExerciseProgress(progressDto)
+                            Log.d("EDIT_WORKOUT", "Initial weight saved for ${ex.name}: ${ex.weight} кг")
+                        } else {
+                            // ЕСТЬ начальный вес → проверяем, изменился ли текущий вес
+                            val previousWeight = currentWeightMap[ex.id]
+
+                            // Если упражнение уже было в тренировке И вес изменился
+                            if (currentExerciseIds.contains(ex.id) && previousWeight != null && ex.weight != previousWeight) {
+                                // Вес изменился → сохраняем как новый прогресс
+                                val progressDto = ExerciseProgressDto(
+                                    userId = userId,
+                                    exerciseId = ex.id,
+                                    workoutId = workoutId,
+                                    weight = ex.weight,
+                                    reps = ex.reps,
+                                    sets = ex.sets,
+                                    notes = "Прогресс от ${System.currentTimeMillis()}"
+                                )
+                                ApiManager.saveExerciseProgress(progressDto)
+                                Log.d("EDIT_WORKOUT", "Progress saved for ${ex.name}: ${ex.weight} кг (was ${previousWeight})")
+                            }
+                        }
+                    }
                 }
 
                 withContext(Dispatchers.Main) {
@@ -167,10 +294,14 @@ class EditWorkoutFragment : Fragment() {
                 }
             } catch (e: Exception) {
                 Log.e("EDIT_WORKOUT", "save error", e)
-                withContext(Dispatchers.Main) { toast("Ошибка сохранения") }
+                withContext(Dispatchers.Main) { toast("Ошибка сохранения: ${e.message}") }
             }
         }
     }
+
+    // ─────────────────────────────────────────────
+    // Поиск упражнений
+    // ─────────────────────────────────────────────
 
     private fun setupExerciseSearch() {
         etExerciseName.addTextChangedListener(object : android.text.TextWatcher {
@@ -215,20 +346,103 @@ class EditWorkoutFragment : Fragment() {
         })
     }
 
+    // ─────────────────────────────────────────────
+    // Отрисовка карточек упражнений
+    // ─────────────────────────────────────────────
+
     private fun render() {
         container.removeAllViews()
+        val userId = getUserId()
+
         exercises.forEachIndexed { index, ex ->
             val v = layoutInflater.inflate(R.layout.exercise_card, container, false)
+
             v.findViewById<TextView>(R.id.tvExerciseName).text = ex.name
             v.findViewById<TextView>(R.id.tvSets).text = ex.sets.toString()
             v.findViewById<TextView>(R.id.tvReps).text = ex.reps.toString()
+            v.findViewById<TextView>(R.id.tvWeight).text = ex.weight.toString()
+            v.findViewById<TextView>(R.id.tvRest).text = "${ex.rest} сек"
+
+            // === ПОКАЗЫВАЕМ НАЧАЛЬНЫЙ ВЕС ===
+            val badge = v.findViewById<TextView>(R.id.tvInitialWeightBadge)
+
+            lifecycleScope.launch {
+                val initialWeight = ApiManager.getExerciseInitialWeight(userId, ex.id)
+                if (initialWeight != null && initialWeight > 0) {
+                    badge.text = "🏁 Начальный: ${initialWeight} кг"
+                    badge.visibility = View.VISIBLE
+
+                    // Показываем изменение
+                    val diff = ex.weight - initialWeight
+                    if (diff > 0) {
+                        badge.append("  ↑ +${"%.1f".format(diff)} кг")
+                        badge.setTextColor(resources.getColor(R.color.green, null))
+                    } else if (diff < 0) {
+                        badge.append("  ↓ ${"%.1f".format(diff)} кг")
+                        badge.setTextColor(resources.getColor(R.color.red, null))
+                    } else {
+                        badge.append("  → без изменений")
+                        badge.setTextColor(resources.getColor(R.color.text_hint, null))
+                    }
+                } else {
+                    badge.visibility = View.GONE
+                }
+            }
+
+            // Визуально выделяем редактируемую карточку
+            if (index == editingIndex) {
+                v.alpha = 1f
+                v.setBackgroundResource(R.drawable.rounded_card_background_selected)
+            } else {
+                v.alpha = if (editingIndex >= 0) 0.5f else 1f
+            }
+
+            // Кнопка редактирования
+            v.findViewById<TextView>(R.id.btnEditExercise).apply {
+                visibility = View.VISIBLE
+                setOnClickListener {
+                    if (editingIndex == index) {
+                        cancelEdit()
+                    } else {
+                        startEditing(index)
+                    }
+                }
+            }
+
+            // Кнопка удаления
             v.findViewById<TextView>(R.id.btnRemoveExercise).apply {
                 visibility = View.VISIBLE
-                setOnClickListener { exercises.removeAt(index); render() }
+                isEnabled = editingIndex < 0 || editingIndex == index
+                setOnClickListener {
+                    if (editingIndex == index) cancelEdit()
+                    exercises.removeAt(index)
+                    render()
+                }
             }
+
             container.addView(v)
         }
     }
 
-    private fun toast(msg: String) = Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+    // ─────────────────────────────────────────────
+    // Вспомогательные функции
+    // ─────────────────────────────────────────────
+
+    /** Получение ID пользователя из SharedPreferences */
+    private fun getUserId(): Long {
+        val prefs = requireContext().getSharedPreferences("session", 0)
+        return prefs.getLong("server_user_id", -1L)
+    }
+
+    private fun clearInputFields() {
+        etExerciseName.text.clear()
+        etSets.setText("")
+        etReps.setText("")
+        etWeight.setText("")
+        etRest.setText("")
+        suggestionsContainer.visibility = View.GONE
+    }
+
+    private fun toast(msg: String) =
+        Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
 }

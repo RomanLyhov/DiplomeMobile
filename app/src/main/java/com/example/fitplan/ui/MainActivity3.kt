@@ -1,8 +1,12 @@
 package com.example.fitplan.ui
 
+import android.app.AlarmManager
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
@@ -37,6 +41,7 @@ class MainActivity3 : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main3)
+        checkNotificationPermission()
         Log.d("SYNC_DEBUG", "START SYNC CALL")
         bottomPanel = findViewById(R.id.bottom_navigation)
         setupPanelClicks()
@@ -468,6 +473,29 @@ class MainActivity3 : AppCompatActivity() {
         text?.setTextColor(c)
     }
 
+    // В MainActivity3 добавьте этот метод
+    private fun checkNotificationPermission() {
+        // Для Android 13+ (API 33+)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(
+                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                    1001
+                )
+            }
+        }
+
+        // Для Android 12+ проверяем разрешение на точные будильники
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            if (!alarmManager.canScheduleExactAlarms()) {
+                // Показываем диалог или открываем настройки
+                val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                startActivity(intent)
+            }
+        }
+    }
     private fun ViewGroup.getChildAtOrNull(index: Int): View? {
         return if (childCount > index) getChildAt(index) else null
     }
